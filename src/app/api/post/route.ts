@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma"
 
-export async function GET(req: Request) {
+export const GET = async (req: Request) => {
 	const posts = await prisma.post.findMany({
 		where: {
 			published: true,
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
 	return Response.json({ posts })
 }
 
-export async function POST(req: Request) {
+export const POST = async (req: Request) => {
 	const { title, content, authorId } = await req.json()
 
 	const newPost = await prisma.post.create({

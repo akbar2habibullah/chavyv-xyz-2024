@@ -1,7 +1,9 @@
 import prisma from "@/lib/prisma"
 
+export const runtime = "edge"
+
 // specify the only parameter is userId
-export async function GET(req: Request, context: { params: { userId: string } }) {
+export const GET = async (req: Request, context: { params: { userId: string } }) => {
 	const userId = context.params.userId
 	const posts = await prisma.post.findMany({
 		where: {
