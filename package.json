@@ -17,6 +17,7 @@
 		"next-auth": "^4.24.5",
 		"openai": "^4.20.1",
 		"prisma": "^5.7.0",
+		"rate-limiter-flexible": "^3.0.6",
 		"react": "^18",
 		"react-dom": "^18"
 	},
