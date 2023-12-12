@@ -1,7 +1,11 @@
 import prisma from "@/lib/prisma"
 
 export async function GET(req: Request) {
-	const posts = await prisma.post.findMany()
+	const posts = await prisma.post.findMany({
+		where: {
+			published: true,
+		},
+	})
 	return Response.json({ posts })
 }
 

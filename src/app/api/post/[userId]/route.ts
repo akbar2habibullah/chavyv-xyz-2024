@@ -6,6 +6,7 @@ export async function GET(req: Request, context: { params: { userId: string } })
 	const posts = await prisma.post.findMany({
 		where: {
 			authorId: userId,
+			published: true,
 		},
 	})
 	return Response.json({ posts })
