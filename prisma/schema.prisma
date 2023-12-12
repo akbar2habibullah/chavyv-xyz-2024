@@ -57,6 +57,7 @@ model User {
   posts         Post[]
   accounts      Account[]
   sessions      Session[]
+  chats     Chat[]
 }
 
 model VerificationToken {
@@ -66,4 +67,29 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Chat {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  messages  Message[]
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  chatId    Int
+  sender    String
+  content   String
+  timestamp DateTime @default(now())
+  responses Response[]
+}
+
+model Response {
+  id        Int      @id @default(autoincrement())
+  message   Message  @relation(fields: [messageId], references: [id])
+  messageId Int
+  content   String
+  timestamp DateTime @default(now())
 }
