@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 		},
 	})
 
-	return { comment: newComment }
+	return Response.json({ comment: newComment })
 }
 
 export async function GET(req: Request) {
@@ -31,5 +31,5 @@ export async function GET(req: Request) {
 		},
 	})
 
-	return { comments }
+	return Response.json({ comments })
 }
