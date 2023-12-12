@@ -1,8 +1,7 @@
-// app/api/chat/route.ts
-
 import { OpenAI } from "openai"
 import { OpenAIStream, StreamingTextResponse } from "ai"
 
+// IMPORTANT! Set the runtime to edge
 export const runtime = "edge"
 
 const fireworks = new OpenAI({
@@ -10,7 +9,6 @@ const fireworks = new OpenAI({
 	apiKey: process.env.FIREWORKS_API_KEY!,
 })
 
-// Build a prompt from the messages
 function buildPrompt(messages: { content: string; role: "system" | "user" | "assistant" }[]) {
 	return (
 		messages
@@ -31,7 +29,7 @@ export async function POST(req: Request) {
 
 	// Request the Fireworks API for the response based on the prompt
 	const response = await fireworks.completions.create({
-		model: "accounts/fireworks/models/mixtral-8x7b",
+		model: "accounts/fireworks/models/mixtral-8x7b-instruct",
 		stream: true,
 		prompt: buildPrompt(messages),
 		max_tokens: 400,
