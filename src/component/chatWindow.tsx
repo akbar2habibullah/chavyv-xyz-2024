@@ -53,7 +53,7 @@ export function ChatWindow(props: { endpoint: string; placeholder?: string; name
 			method: "POST",
 			body: JSON.stringify({
 				messages: messagesWithUserReply,
-				user: user,
+				user: props.name || user,
 				user_id: props.id,
 			}),
 		})
