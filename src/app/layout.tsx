@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Navigation from "@/component/navigation"
+import Chat from "@/component/chat"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<main className="flex flex-col justify-center font-bold text-white bg-white">
 					{children}
 					<Navigation />
+					<Chat />
 				</main>
 			</body>
 		</html>
