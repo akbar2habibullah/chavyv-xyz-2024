@@ -52,10 +52,11 @@ export default function About() {
 						</a>
 					</li>
 					<li>My Temprament: Phlegmatic-Sanguine</li>
+					<li>My Enneagram Tritype: Type 549</li>
 					<li>
 						My IQ Test:{" "}
 						<a className="bg-[#FB7C33] text-white hover:text-[#1E1E1E]  hover:underline rounded" href="https://brght.org/profile/habibullah-akbar-1/">
-							126-146
+							138
 						</a>
 					</li>
 				</ul>
