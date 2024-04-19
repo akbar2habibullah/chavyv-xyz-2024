@@ -2,16 +2,10 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect } from "react"
-import splitbee from "@splitbee/web"
 
 const Navigation: React.FC = () => {
 	const navItems = [{ label: "HOME" }, { label: "ABOUT" }, { label: "RESUME" }, { label: "BLOG" }, { label: "CONTACTS" }]
 	const pathname = usePathname()
-
-	useEffect(() => {
-		splitbee.init()
-	})
 
 	return (
 		<nav className="flex fixed bottom-0 left-0 right-0 justify-center items-center px-16 py-4 w-full text-xl text-center whitespace-nowrap border border-solid backdrop-blur-[10.199999809265137px] bg-stone-900 bg-opacity-70 border-stone-900 border-opacity-10 max-md:px-5 max-md:py-5 max-md:max-w-full max-md:text-xs">
