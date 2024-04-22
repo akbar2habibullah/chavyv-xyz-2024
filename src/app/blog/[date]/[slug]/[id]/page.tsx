@@ -59,7 +59,7 @@ async function getData(id: string) {
 }
 
 export async function generateStaticParams() {
-	const response = await fetch(`https://notion-api.splitbee.io/v1/table/${process.env.NOTION_BLOG_ID}`, { next: { revalidate: 600 } })
+	const response = await fetch(`https://notion-api.splitbee.io/v1/table/${process.env.NOTION_BLOG_ID}`, { next: { revalidate: 3600 * 12 } })
 
 	const posts = await response.json()
 

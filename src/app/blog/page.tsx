@@ -98,7 +98,7 @@ export default async function Blog() {
 }
 
 async function getData() {
-	const res = await fetch(`https://notion-api.splitbee.io/v1/table/${process.env.NOTION_BLOG_ID}`, { next: { revalidate: 600 } })
+	const res = await fetch(`https://notion-api.splitbee.io/v1/table/${process.env.NOTION_BLOG_ID}`, { next: { revalidate: 3600 * 12 } })
 
 	if (!res.ok) {
 		// This will activate the closest `error.js` Error Boundary
