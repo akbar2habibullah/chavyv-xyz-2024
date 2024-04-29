@@ -41,11 +41,13 @@ async function getData(id: string) {
 	const res = await getPage(id)
 	const resBlocks = await getBlocks(id)
 
+	// @ts-ignore
 	return { title: res.properties.page.title[0].plain_text, blocks: resBlocks }
 }
 
 export async function generateStaticParams() {
 	const res = await getDatabase(process.env.NOTION_BLOG_ID!)
 
+	// @ts-ignore
 	return res.map((item) => ({ id: item.id, slug: item.properties.slug.rich_text[0].plain_text, date: item.properties.date.date.start }))
 }
