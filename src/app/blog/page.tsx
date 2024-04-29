@@ -95,3 +95,5 @@ async function getData() {
 	// @ts-ignore
 	return res.map((item) => ({ id: item.id, slug: item.properties.slug.rich_text[0].plain_text, date: item.properties.date.date.start, published: item.properties.published.checkbox, page: item.properties.page.title[0].plain_text, tags: item.properties.tags.multi_select.map((tag: { name: string }) => tag.name) })).reverse()
 }
+
+export const revalidate = 3600 * 3

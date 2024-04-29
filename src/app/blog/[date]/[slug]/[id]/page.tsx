@@ -51,3 +51,5 @@ export async function generateStaticParams() {
 	// @ts-ignore
 	return res.map((item) => ({ id: item.id, slug: item.properties.slug.rich_text[0].plain_text, date: item.properties.date.date.start }))
 }
+
+export const revalidate = 3600 * 3
