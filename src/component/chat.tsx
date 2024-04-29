@@ -16,7 +16,7 @@ const Chat: React.FC = () => {
 			<div className={`fixed right-10 top-10 max-md:right-5 max-md:top-5 cursor-pointer ${show || dialog ? "hidden" : ""}`} onClick={() => setDialog(true)}>
 				<div className="relative hover:text-[#1E1E1E] hover:scale-110 hover:-rotate-6">
 					<div className="absolute w-full h-full flex justify-center items-center">
-						<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-bot">
+						<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bot">
 							<path d="M12 8V4H8" />
 							<rect width="16" height="12" x="4" y="8" rx="2" />
 							<path d="M2 14h2" />
@@ -69,7 +69,7 @@ const Chat: React.FC = () => {
 			</div>
 			<div className={`fixed right-10 top-10 w-[250px] max-md:max-w-full rounded bg-white/80 z-40 p-4 ${dialog ? "" : "hidden"}`}>
 				<div className={`absolute top-5 right-5 z-50 cursor-pointer`} onClick={() => setDialog(false)}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-circle-x hover:text-[#1E1E1E]">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-x hover:text-[#1E1E1E]">
 						<circle cx="12" cy="12" r="10" />
 						<path d="m15 9-6 6" />
 						<path d="m9 9 6 6" />
@@ -113,7 +113,7 @@ const Chat: React.FC = () => {
 			</div>
 			<div className={`fixed right-10 top-10 w-[500px] h-[80vh] max-md:h-[85vh] max-md:max-w-full rounded bg-white/80 z-40 max-md:inset-0 ${show ? "" : "hidden"}`}>
 				<div className={`absolute top-5 right-5 z-50 cursor-pointer`} onClick={() => setShow(false)}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-circle-x hover:text-[#1E1E1E]">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-x hover:text-[#1E1E1E]">
 						<circle cx="12" cy="12" r="10" />
 						<path d="m15 9-6 6" />
 						<path d="m9 9 6 6" />

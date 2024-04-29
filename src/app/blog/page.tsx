@@ -1,19 +1,11 @@
 import BlogCard from "@/component/blogCard"
 import HeroSection from "@/component/hero"
-
-interface Author {
-	id: string
-	firstName: string
-	lastLame: string
-	fullName: string
-	profilePhoto: string
-}
+import { getDatabase } from "@/libs/notion"
 
 interface BlogProps {
 	id: string
 	slug: string
 	date: string
-	authors: Author[]
 	published: boolean
 	page: string
 	tags: string[]
@@ -98,12 +90,7 @@ export default async function Blog() {
 }
 
 async function getData() {
-	const res = await fetch(`https://notion-api.splitbee.io/v1/table/${process.env.NOTION_BLOG_ID}`, { next: { revalidate: 3600 * 12 } })
+	const res = await getDatabase(process.env.NOTION_BLOG_ID!)
 
-	if (!res.ok) {
-		// This will activate the closest `error.js` Error Boundary
-		throw new Error("Failed to fetch data")
-	}
-
-	return res.json()
+	return res.map((item) => ({ id: item.id, slug: item.properties.slug.rich_text[0].plain_text, date: item.properties.date.date.start, published: item.properties.published.checkbox, page: item.properties.page.title[0].plain_text, tags: item.properties.tags.multi_select.map((tag: { name: string }) => tag.name) })).reverse()
 }
