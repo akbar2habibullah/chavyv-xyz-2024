@@ -12,6 +12,20 @@ export default function About() {
 			<h2 className="text-5xl max-md:text-2xl">BUT YOU CAN CALL ME HABIB</h2>
 			<br />
 			<h1 className="h-[10rem]">
+				I AM AN
+				<br />
+				ARCH WIZARD 🧙‍♂️
+			</h1>
+			<br />
+			<h2 className="text-white text-5xl max-md:text-2xl">
+				<span className="bg-[#FB7C33] rounded">Why I am an Arch Wizard?</span>
+			</h2>
+			<br />
+			<p className="text-4xl max-md:text-2xl">Imagine this, you stumbled upon the medieval era where there were dragons 🐲, elves 🧝‍♀️, fairies 🧚‍♀️, knights ⚔️, castles 🏰, and magical creatures 🪄. You remember an eccentric man living in a crumbling tower outside the crowds, who can spell magic very well. This man is different from other wizards, he doesn&apos;t have any recognition from the official academy 🧑‍🎓, despite having a technique better than most of the wizards you often find.</p>
+			<br />
+			<p className="text-4xl max-md:text-2xl">He lives outside society and rarely shows his existence to ordinary people but to one insistent student. He typically refuses any apprentices, but somehow accepts for this one. He does his daily with eccentrics and unconventionally, learning magic in unorthodox ways 🦉, making his potential power unpredictable and unknown, both to him 🧙‍♂️ and the world 🌏.</p>
+			<br />
+			<h1 className="h-[10rem]">
 				I AM ALSO A
 				<br />
 				<TypeAnimation sequence={["SOFTWARE ENGINEER 👨‍💻", 1000, "MACHINE LEARNING ENGINEER 🤖", 1000, "CONTENT CREATOR 😎", 1000, "FOUNDER 💡", 1000, "LIVESTREAMER 🎮", 1000]} speed={50} repeat={Infinity} />
@@ -36,12 +50,12 @@ export default function About() {
 					<li>
 						My Big 5 SLOAN:{" "}
 						<a className="bg-[#FB7C33] text-white hover:text-[#1E1E1E] hover:underline rounded" href="https://bigfive-test.com/result/6518f63cb5a6690008ec8f70">
-							/R/Coe[I]
+							/R/coe[I]
 						</a>
 					</li>
 					<li>
 						My Socionics type:{" "}
-						<a className="bg-[#FB7C33] text-white hover:text-[#1E1E1E] hover:underline rounded" href="https://sociotype.xyz/374p4Jibt83HEpis">
+						<a className="bg-[#FB7C33] text-white hover:text-[#1E1E1E] hover:underline rounded" href="https://sociotype.xyz/ydMAZNboZI=2fX3B">
 							ILI-Ni
 						</a>
 					</li>
@@ -51,8 +65,10 @@ export default function About() {
 							result
 						</a>
 					</li>
-					<li>My Temprament: Phlegmatic-Sanguine</li>
+					<li>My Temprament: Phlegmatic</li>
 					<li>My Enneagram Tritype: Type 549</li>
+					<li>My DISC Type: CD</li>
+					<li>My Moral Alignment: True Neutral</li>
 					<li>
 						My IQ Test:{" "}
 						<a className="bg-[#FB7C33] text-white hover:text-[#1E1E1E]  hover:underline rounded" href="https://brght.org/profile/habibullah-akbar-1/">
