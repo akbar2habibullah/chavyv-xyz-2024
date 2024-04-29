@@ -1,7 +1,7 @@
 import HeroSection from "@/component/hero"
 import { getBlocks, getDatabase, getPage } from "@/libs/notion"
 import Link from "next/link"
-import { Render } from "@9gustin/react-notion-render"
+import { NotionBlock, Render } from "@9gustin/react-notion-render"
 
 interface Author {
 	id: string
@@ -24,7 +24,7 @@ export default async function Slug({ params }: { params: { slug: string; id: str
 			<h2 className="text-4xl max-md:text-2xl text-white">{params.date}</h2>
 			<br />
 			<p className="text-2xl max-md:text-xl bg-white rounded">
-				<Render blocks={data.blocks} />
+				<Render blocks={data.blocks as unknown as NotionBlock[]} />
 			</p>
 			<br />
 			<h2 className="text-4xl max-md:text-2xl">
