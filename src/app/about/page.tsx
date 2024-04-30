@@ -21,9 +21,9 @@ export default function About() {
 				<span className="bg-[#FB7C33] rounded">Why I am an Arch Wizard?</span>
 			</h2>
 			<br />
-			<p className="text-4xl max-md:text-2xl">Imagine this, you stumbled upon the medieval era where there were dragons 🐲, elves 🧝‍♀️, fairies 🧚‍♀️, knights ⚔️, castles 🏰, and magical creatures 🪄. You remember an eccentric man living in a crumbling tower outside the crowds, who can spell magic very well. This man is different from other wizards, he doesn&apos;t have any recognition from the official academy 🧑‍🎓, despite having a technique better than most of the wizards you often find.</p>
+			<p className="text-4xl max-md:text-2xl">Imagine this, you stumbled upon the medieval era where there were dragons 🐲, elves 🧝‍♀️, fairies 🧚‍♀️, knights ⚔️, castles 🏰, and magical creatures 🪄. You remember an eccentric man living in a crumbling tower outside the crowds, who can spell magic very well. This man is different from other wizards, he doesn&apos;t have any recognition from the official academy 🧑‍🎓 despite having a technique better than most of the wizards you often find and being highly knowledgeable about magic and the world.</p>
 			<br />
-			<p className="text-4xl max-md:text-2xl">He lives outside society and rarely shows his existence to ordinary people but to one insistent student. He typically refuses any apprentices, but somehow accepts for this one. He does his daily with eccentrics and unconventionally, learning magic in unorthodox ways 🦉, making his potential power unpredictable and unknown, both to him 🧙‍♂️ and the world 🌏.</p>
+			<p className="text-4xl max-md:text-2xl">He lives outside society and rarely shows his existence to ordinary people but to one insistent student. He typically refuses any apprentices but somehow accepts for this one student. He does his daily with eccentrics and unconventionally, learning magic in unorthodox ways as his habit 🦉, making his potential power unpredictable and unknown, both to him 🧙‍♂️ and the world 🌏.</p>
 			<br />
 			<h1 className="h-[10rem]">
 				I AM ALSO A
