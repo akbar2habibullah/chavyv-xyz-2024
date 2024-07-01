@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       const element = responseHistory[i];
 
       conversation.push({ id: `${element?.id}-1`, content: element?.metadata?.input as unknown as string, role: 'user'})
-      conversation.push({ id: `${element?.id}-2`, content: element?.metadata?.input as unknown as string, role: 'assistant'})
+      conversation.push({ id: `${element?.id}-2`, content: element?.metadata?.output as unknown as string, role: 'assistant'})
     }
 
 		return NextResponse.json({ output: conversation }, { status: 200 })

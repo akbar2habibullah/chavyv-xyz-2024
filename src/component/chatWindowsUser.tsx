@@ -17,7 +17,7 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 	const messageContainerRef = useRef<HTMLDivElement | null>(null)
 
 	const { endpoint, placeholder } = props
-	const [loading, setLoading] = useState<boolean>(true)
+	const [loading, setLoading] = useState<boolean>(false)
 
 	const { messages, input, setInput, handleInputChange, setMessages } = useChat({
 		api: endpoint,
@@ -66,6 +66,8 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 	}
 
   async function ingest() {
+		setLoading(true)
+
     const response = await fetch('/api/ingest', {
       method: "POST",
       body: JSON.stringify({
@@ -78,15 +80,19 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 
     if (response.status === 200) {
       setMessages(trimMessage([...json.output]))
+      setLoading(false)
     } else {
       toast(json.error, {
         theme: "dark",
       })
+      setLoading(false)
       throw new Error(json.error)
     }
-    
-    setLoading(false)
   }
+
+  useEffect(() => {
+    console.log(messages)
+  }, [messages])
 
 	return (
 		<div className={`relative flex flex-col items-center p-4 rounded grow overflow-hidden h-full`}>
@@ -101,7 +107,7 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 			<div className="flex flex-col-reverse w-full overflow-auto transition-[flex-grow] ease-in-out" ref={messageContainerRef}>
 				{messages.length > 0
 					? [...messages].reverse().map((m, i) => {
-							return <ChatMessageBubble key={m.id} message={m} sender={m.role === "assistant" ? "🦋" : `${props.name} #${props.id}`}></ChatMessageBubble>
+							return <ChatMessageBubble key={m.id} message={m} sender={m.role === "assistant" ? "🦋" : `${props.name}`}></ChatMessageBubble>
 					  })
 					: ""}
 			</div>

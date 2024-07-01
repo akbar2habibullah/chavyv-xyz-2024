@@ -24,6 +24,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_KEY,
 })
 
+function trimNewlines(input: string): string {
+  return input.replace(/^\s+|\s+$/g, '');
+}
+
 export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage)
-		const currentMessageContent = formatMessage(messages[messages.length - 1])
+		const currentMessageContent = messages[messages.length - 1].content
 
 		let options: Intl.DateTimeFormatOptions = {
 			timeZone: "Asia/Jakarta",
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
 
 		const inputEmbedding = await getEmbedding(inputKeyWordsString)
 
-		await index.query({
+		const retrieval = await index.query({
 			vector: inputEmbedding,
 			topK: 3,
 			includeMetadata: true,
@@ -75,7 +79,7 @@ export async function POST(req: NextRequest) {
 		let memories = ``
 		let cursor = "0"
 
-		for (let i = 0; i < 3; i++) {
+		for (let i = 0; i < retrieval.length; i++) {
 			const responseRange = await index.range({
 				cursor,
 				limit: 5,
@@ -85,19 +89,16 @@ export async function POST(req: NextRequest) {
 			cursor = responseRange.nextCursor
 
 			const responseParsed = responseRange.vectors.map(
-				(data) => `${name}: ${data.metadata?.input}\n
-				Me: ${data.metadata?.output}\n`
+				(data) => `${name}: ${data?.metadata?.input}\n
+				Me: ${data?.metadata?.output}\n`
 			).join()
 
-			memories += `Conversation I remember from ${responseRange.vectors[0].metadata?.timestamp}:\n${responseParsed}\n\n`
+			memories += `Conversation I remember from ${responseRange.vectors[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`
 		}
 
 		const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
-
 ${memories}
-
 Timestamp for now is ${timestamp}.
-
 And below is my current online conversation with ${process.env.USER_NAME} via text chat interface:
 ${chat_history}`
 
@@ -109,16 +110,19 @@ ${chat_history}`
 			],
 		})
 	
-		const response = completion.choices[0].message
+		const response = trimNewlines(completion.choices[0].message.content || "")
+
+		const uuid = uid.rnd()
 
 		await index.upsert({
-			id: String(uid),
+			id: uuid,
 			vector: inputEmbedding,
 			metadata: {
 				keywords: inputKeyWords,
 				input: currentMessageContent,
 				output: response,
-				timestamp: timestamp
+				timestamp: timestamp,
+				completePrompt: SYSTEM_PROMPT
 			},
 		});
 
@@ -127,9 +131,9 @@ ${chat_history}`
 
 		let historyArr = history.split(", ")
 
-		historyArr.push(String(uid))
+		historyArr.push(uuid)
 
-		await redis.set("history", historyArr.slice(1, historyArr.length))
+		await redis.set("history", historyArr.join(", "))
 
 		return NextResponse.json({ output: response }, { status: 200 })
 	} catch (e: any) {
