@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { Message as VercelChatMessage } from "ai"
 
 import OpenAI from "openai"
+
+import { Redis } from '@upstash/redis'
 import { Index } from "@upstash/vector"
 import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention"
+
+const redis = new Redis({
+  url: process.env.REDIS_LINK!,
+  token: process.env.REDIS_TOKEN!,
+})
 
 const index = new Index({
   url: process.env.UPSTASH_LINK,
@@ -114,6 +121,15 @@ ${chat_history}`
 				timestamp: timestamp
 			},
 		});
+
+		
+    const history = await redis.get<string>("history") || "";
+
+		let historyArr = history.split(", ")
+
+		historyArr.push(String(uid))
+
+		await redis.set("history", historyArr.slice(1, historyArr.length))
 
 		return NextResponse.json({ output: response }, { status: 200 })
 	} catch (e: any) {

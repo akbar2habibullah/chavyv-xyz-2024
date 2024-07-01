@@ -3,8 +3,11 @@
 import { ChatWindow } from "@/component/chatWindow"
 import { useState } from "react"
 import ShortUniqueId from "short-unique-id"
+import { usePathname } from 'next/navigation'
+import { ChatWindowUser } from "./chatWindowsUser"
 
 const Chat: React.FC = () => {
+  const pathname = usePathname()
 	const [show, setShow] = useState<boolean>(false)
 	const [dialog, setDialog] = useState<boolean>(false)
 
@@ -119,7 +122,9 @@ const Chat: React.FC = () => {
 						<path d="m9 9 6 6" />
 					</svg>
 				</div>
-				<ChatWindow endpoint="/api/chat" name={name} id={id} placeholder="Hi, I am an AI Agent behind this website, you can call me Mbak AI. What's your name?"></ChatWindow>
+				{pathname !== "/chat" ? 
+				<ChatWindow endpoint="/api/chat" name={name} id={id} placeholder="Hi, I am an AI Agent behind this website, you can call me Mbak AI. What's your name?"></ChatWindow> : 
+				<ChatWindowUser endpoint="/api/chat/retrieval" name={name} id={id}></ChatWindowUser> }
 			</div>
 		</>
 	)
