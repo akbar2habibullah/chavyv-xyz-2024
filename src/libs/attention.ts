@@ -48,7 +48,18 @@ export async function generateResponse(prompt: string) {
 
 // Function to generate response from Groq with system prompt
 export async function generateResponseWithSystemPrompt(systemPrompt: string, prompt: string, ) {
+  const startTime = Date.now();
+
   const result = await groqChatCompletionWithSystemPrompt(systemPrompt, prompt)
+
+  const endTime = Date.now();
+
+  const executionTime = endTime - startTime;
+  const delay = Math.max(0, 2000 - executionTime);
+
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
 
   return result.choices[0]?.message?.content || "" as unknown as string;
 }
