@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 		const chat_history = formattedPreviousMessages.join("\n") || "There's no conversation history yet"
 		const timestamp = dateFormatter.format(new Date())
 
-		const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, {systemPrompt: process.env.AGENT_EGO, threshold: 0.25})
+		const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, {systemPrompt: process.env.AGENT_EGO, threshold: 0.20})
 		const inputKeyWordsString = inputKeyWords.join(", ")
 
 		const inputEmbedding = await getEmbedding(inputKeyWordsString)
