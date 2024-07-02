@@ -47,7 +47,7 @@ async function groqChatCompletionWithSystemPrompt(systemPrompt: string, input: s
 
 async function openRouterChatCompletion(input: string) {
 	return openai.chat.completions.create({
-    model: "meta-llama/llama-3-8b-instruct",
+    model: "lynn/soliloquy-l3",
     messages: [
       { role: "user", content: input}
     ],
@@ -98,26 +98,47 @@ export async function getEmbedding(text: string) {
 
 // Function to create prompt variants
 function createVariants(prompt: string) {
-  const words = prompt.split(' ');
+  const words = splitSentenceIntoParts(prompt);
   return words.map((word, index) => {
     const replaced = words.slice();
     replaced[index] = '<placeholder>';
     return replaced.join(' ');
   });
 }
+
 // Function to split paragraph into sentences
 function splitIntoSentences(paragraph: string) {
   return paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
 }
 
+function splitSentenceIntoParts(sentence: string): string[] {
+  // Split the sentence into words
+  const words = sentence.split(' ');
+
+  // Calculate the number of parts (max 30)
+  const numParts = Math.min(words.length, 30);
+
+  // Calculate the size of each part
+  const partSize = Math.ceil(words.length / numParts);
+
+  // Initialize an array to hold the parts
+  const parts: string[] = [];
+
+  // Divide the words into parts and join them into strings
+  for (let i = 0; i < words.length; i += partSize) {
+      parts.push(words.slice(i, i + partSize).join(' '));
+  }
+
+  return parts;
+}
+
 // Function to find the most influential tokens for a sentence
 export async function findInfluentialTokensForSentence(sentence: string, options: { systemPrompt?: string, threshold: number} ) {
   const { systemPrompt, threshold } = options
-  const amountWords = sentence.split(" ").length
-  const baseResponse = systemPrompt ? await generateResponseWithSystemPrompt(sentence, systemPrompt, amountWords > 30) : await generateResponse(sentence, amountWords > 30);
+  const baseResponse = systemPrompt ? await generateResponseWithSystemPrompt(sentence, systemPrompt) : await generateResponse(sentence);
   const baseEmbedding = await getEmbedding(baseResponse);
   const variants = createVariants(sentence);
-  const variantOutputs = await Promise.all(variants.map((str) => systemPrompt ? generateResponseWithSystemPrompt(str, systemPrompt, amountWords > 30) : generateResponse(str, amountWords > 30)));
+  const variantOutputs = await Promise.all(variants.map((str) => systemPrompt ? generateResponseWithSystemPrompt(str, systemPrompt) : generateResponse(str)));
   const variantEmbeddings = await Promise.all(variantOutputs.map(str => getEmbedding(str)));
   const baseVec = baseEmbedding;
   const distances = variantEmbeddings.map(variantVec => {
