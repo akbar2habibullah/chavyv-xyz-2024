@@ -152,7 +152,7 @@ export async function findInfluentialTokensForSentence(sentence: string, options
     .map(item => item.index);
   const maxDistances = sortedIndices.map(index => distances[index]);
   const thresholdDistances = maxDistances.map(distance => distance * (1 - threshold));
-  const words = sentence.split(' ');
+  const words = splitIntoSentences(sentence);
   const influentialTokens = new Set();
   sortedIndices.forEach((topIndex, i) => {
     influentialTokens.add(words[topIndex]);
