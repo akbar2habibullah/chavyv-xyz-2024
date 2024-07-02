@@ -7,14 +7,19 @@ import { Redis } from '@upstash/redis'
 import { Index } from "@upstash/vector"
 import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention"
 
-const redis = new Redis({
-  url: process.env.REDIS_LINK!,
-  token: process.env.REDIS_TOKEN!,
-})
-
 const index = new Index({
   url: process.env.UPSTASH_LINK,
   token: process.env.UPSTASH_TOKEN,
+})
+
+const redis2 = new Redis({
+  url: process.env.REDIS2_LINK!,
+  token: process.env.REDIS2_TOKEN!,
+})
+
+const index2 = new Index({
+  url: process.env.UPSTASH2_LINK,
+  token: process.env.UPSTASH2_TOKEN,
 })
 
 import ShortUniqueId from "short-unique-id"
@@ -114,7 +119,7 @@ ${chat_history}`
 
 		const uuid = uid.rnd()
 
-		await index.upsert({
+		await index2.upsert({
 			id: uuid,
 			vector: inputEmbedding,
 			metadata: {
@@ -127,13 +132,13 @@ ${chat_history}`
 		});
 
 		
-    const history = await redis.get<string>("history") || "";
+    const history = await redis2.get<string>("history") || "";
 
 		let historyArr = history.split(", ")
 
 		historyArr.push(uuid)
 
-		await redis.set("history", historyArr.join(", "))
+		await redis2.set("history", historyArr.join(", "))
 
 		return NextResponse.json({ output: response }, { status: 200 })
 	} catch (e: any) {

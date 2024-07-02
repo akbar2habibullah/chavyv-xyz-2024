@@ -5,13 +5,13 @@ import { Redis } from '@upstash/redis'
 import { Index } from "@upstash/vector"
 
 const redis = new Redis({
-  url: process.env.REDIS_LINK!,
-  token: process.env.REDIS_TOKEN!,
+  url: process.env.REDIS2_LINK!,
+  token: process.env.REDIS2_TOKEN!,
 })
 
 const index = new Index({
-  url: process.env.UPSTASH_LINK,
-  token: process.env.UPSTASH_TOKEN,
+  url: process.env.UPSTASH2_LINK,
+  token: process.env.UPSTASH2_TOKEN,
 })
 
 
