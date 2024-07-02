@@ -4,11 +4,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004"});
 
-
+import OpenAI from "openai"
 import Groq from "groq-sdk"
 
 const groq = new Groq({
 	apiKey: process.env.GROQ_API_KEY,
+})
+
+
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_KEY,
 })
 
 async function groqChatCompletion(input: string) {
@@ -39,27 +45,46 @@ async function groqChatCompletionWithSystemPrompt(systemPrompt: string, input: s
 	})
 }
 
+async function openRouterChatCompletion(input: string) {
+	return openai.chat.completions.create({
+    model: "meta-llama/llama-3-8b-instruct",
+    messages: [
+      { role: "user", content: input}
+    ],
+  })
+}
+
+async function openRouterChatCompletionWithSystemPrompt(systemPrompt: string, input: string) {
+	return await openai.chat.completions.create({
+    model: "lynn/soliloquy-l3",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: input }
+    ],
+  })
+}
+
 // Function to generate response from Groq
-export async function generateResponse(prompt: string) {
+export async function generateResponse(prompt: string, openrouter: boolean = false) {
+  if (openrouter) {
+    const result = await openRouterChatCompletion(prompt)
+
+    return result.choices[0]?.message?.content || "" as unknown as string;
+  }
+
   const result = await groqChatCompletion(prompt)
 
   return result.choices[0]?.message?.content || "" as unknown as string;
 }
 
 // Function to generate response from Groq with system prompt
-export async function generateResponseWithSystemPrompt(systemPrompt: string, prompt: string, ) {
-  const startTime = Date.now();
+export async function generateResponseWithSystemPrompt(systemPrompt: string, prompt: string, openrouter: boolean = false) {
+  if (openrouter) {
+    const result = await openRouterChatCompletionWithSystemPrompt(systemPrompt, prompt)
 
-  const result = await groqChatCompletionWithSystemPrompt(systemPrompt, prompt)
-
-  const endTime = Date.now();
-
-  const executionTime = endTime - startTime;
-  const delay = Math.max(0, 2000 - executionTime);
-
-  if (delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, delay));
+    return result.choices[0]?.message?.content || "" as unknown as string;
   }
+  const result = await groqChatCompletionWithSystemPrompt(systemPrompt, prompt)
 
   return result.choices[0]?.message?.content || "" as unknown as string;
 }
@@ -88,10 +113,11 @@ function splitIntoSentences(paragraph: string) {
 // Function to find the most influential tokens for a sentence
 export async function findInfluentialTokensForSentence(sentence: string, options: { systemPrompt?: string, threshold: number} ) {
   const { systemPrompt, threshold } = options
-  const baseResponse = systemPrompt ? await generateResponseWithSystemPrompt(sentence, systemPrompt) : await generateResponse(sentence);
+  const amountWords = sentence.split(" ").length
+  const baseResponse = systemPrompt ? await generateResponseWithSystemPrompt(sentence, systemPrompt, amountWords > 30) : await generateResponse(sentence, amountWords > 30);
   const baseEmbedding = await getEmbedding(baseResponse);
   const variants = createVariants(sentence);
-  const variantOutputs = await Promise.all(variants.map(str => systemPrompt ? generateResponseWithSystemPrompt(str, systemPrompt) : generateResponse(str)));
+  const variantOutputs = await Promise.all(variants.map((str) => systemPrompt ? generateResponseWithSystemPrompt(str, systemPrompt, amountWords > 30) : generateResponse(str, amountWords > 30)));
   const variantEmbeddings = await Promise.all(variantOutputs.map(str => getEmbedding(str)));
   const baseVec = baseEmbedding;
   const distances = variantEmbeddings.map(variantVec => {
