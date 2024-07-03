@@ -14,9 +14,9 @@ const index = new Index({
   token: process.env.UPSTASH2_TOKEN,
 })
 
-function getLast100Elements(arr: VercelChatMessage[]) {
+function getLastElements(arr: VercelChatMessage[]) {
   // Calculate the starting index for slicing
-  const startIndex = Math.max(arr.length - 100, 0);
+  const startIndex = Math.max(arr.length - 18, 0);
   // Use slice to get the last 100 elements
   return arr.slice(startIndex);
 }
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       conversation.push({ id: `${element?.id}-2`, content: element?.metadata?.output as unknown as string, role: 'assistant'})
     }
 
-		return NextResponse.json({ output: getLast100Elements(conversation) }, { status: 200 })
+		return NextResponse.json({ output: getLastElements(conversation) }, { status: 200 })
 	} catch (e: any) {
 		return NextResponse.json({ error: e.message }, { status: e.status ?? 500 })
 	}
