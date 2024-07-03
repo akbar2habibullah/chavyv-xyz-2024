@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 			return `${message.role === "user" ? name : "Me"}: ${message.content}`
 		}
 
-		const formattedPreviousMessages = messages.map(formatMessage)
+		const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage)
 		const currentMessageContent = messages[messages.length - 1].content
 
 		let options: Intl.DateTimeFormatOptions = {
@@ -133,14 +133,12 @@ Me (My Answer as ${process.env.AGENT}): `
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
-				"model": "sao10k/l3-euryale-70b",
-				"prompt": SYSTEM_PROMPT,
+				"model": "google/gemma-2-9b-it:free",
+				"messages":  [
+					{"role": "system", "content": SYSTEM_PROMPT},
+					{"role": "user", "content": currentMessageContent},
+				],
 				"max_tokens": 128,
-				"provider": {
-					"order": [
-						"Infermatic"
-					]
-				},
 			})
 		});
 
