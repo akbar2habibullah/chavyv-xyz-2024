@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
 		for (let i = 0; i < retrieval.length; i++) {
 			const responseRange = await index.range({
-				cursor,
+				cursor: retrieval[i].id,
 				limit: 5,
 				includeMetadata: true,
 			});
