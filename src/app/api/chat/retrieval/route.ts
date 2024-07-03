@@ -80,6 +80,16 @@ export async function POST(req: NextRequest) {
 		const formattedPreviousMessages = messages.map(formatMessage)
 		const currentMessageContent = messages[messages.length - 1].content
 
+		if (!currentMessageContent) {
+			const history = await redis2.get<string>("history") || "";
+
+			let historyArr = history.split(", ")
+
+			await index.delete(historyArr[historyArr.length - 1])
+
+			await redis2.set("history", historyArr.slice(historyArr.length - 1).join(", "))
+		}
+
 		let options: Intl.DateTimeFormatOptions = {
 			timeZone: "Asia/Jakarta",
 			year: "numeric",

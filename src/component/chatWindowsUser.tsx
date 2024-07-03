@@ -37,6 +37,10 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 		if (!messages.length) {
 			await new Promise((resolve) => setTimeout(resolve, 300))
 		}
+		if (input === "") {
+			const trimMessage = messages.slice(messages.length - 2)
+			setMessages(trimMessage)
+		}
 		setLoading(true)
 		const messagesWithUserReply = messages.concat({ id: messages.length.toString(), content: input, role: "user" })
 		setMessages(messagesWithUserReply)
