@@ -7,6 +7,12 @@ import { Redis } from '@upstash/redis'
 import { Index } from "@upstash/vector"
 import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention"
 
+
+const redis = new Redis({
+  url: process.env.REDIS_LINK!,
+  token: process.env.REDIS_TOKEN!,
+})
+
 const index = new Index({
   url: process.env.UPSTASH_LINK,
   token: process.env.UPSTASH_TOKEN,
@@ -31,6 +37,25 @@ const openai = new OpenAI({
 
 function trimNewlines(input: string): string {
   return input.replace(/^\s+|\s+$/g, '');
+}
+
+async function getChunkData(id: string) {
+  const history: string = await redis.get("history") || "";
+  const orderedIds = history.split(", ")
+  const idx = orderedIds.indexOf(id);
+  if (idx === -1) {
+    throw new Error('ID not found in the ordered array');
+  }
+
+  const startIndex = Math.max(0, idx - 2);
+  const endIndex = Math.min(orderedIds.length - 1, idx + 3);
+
+  const chunkIds = orderedIds.slice(startIndex, endIndex + 1);
+
+  
+  const chunkData = await index.fetch(chunkIds, {includeMetadata: true})
+
+  return chunkData;
 }
 
 export const runtime = "edge"
@@ -82,23 +107,16 @@ export async function POST(req: NextRequest) {
 		});
 
 		let memories = ``
-		let cursor = "0"
 
 		for (let i = 0; i < retrieval.length; i++) {
-			const responseRange = await index.range({
-				cursor: retrieval[i].id,
-				limit: 5,
-				includeMetadata: true,
-			});
+			const responseRange = await getChunkData(retrieval[i].id as unknown as string)
 
-			cursor = responseRange.nextCursor
-
-			const responseParsed = responseRange.vectors.map(
+			const responseParsed = responseRange.map(
 				(data) => `${name}: ${data?.metadata?.input}\n
 				Me: ${data?.metadata?.output}\n`
 			).join()
 
-			memories += `Conversation I remember from ${responseRange.vectors[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`
+			memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`
 		}
 
 		const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
