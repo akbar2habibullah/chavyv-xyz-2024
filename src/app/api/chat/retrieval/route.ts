@@ -133,9 +133,9 @@ Me (My Answer as ${process.env.AGENT}): `
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
-				"model": "lynn/soliloquy-l3",
+				"model": "sao10k/l3-euryale-70b",
 				"prompt": SYSTEM_PROMPT,
-				"max_tokens": 64,
+				"max_tokens": 128,
 			})
 		});
 
