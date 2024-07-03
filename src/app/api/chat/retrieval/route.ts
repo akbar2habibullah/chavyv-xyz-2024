@@ -140,7 +140,7 @@ Me (My Answer as ${process.env.AGENT}): `
 
 		const completion = await completionResponse.json()
 	
-		const response = trimNewlines(completion.text || "")
+		const response = trimNewlines(completion.choices[0].text)
 
 		const uuid = uid.rnd()
 
