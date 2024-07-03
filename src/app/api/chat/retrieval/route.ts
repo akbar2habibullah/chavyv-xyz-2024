@@ -146,7 +146,7 @@ Me (My Answer as ${process.env.AGENT}): `
 
 		console.log(completion)
 	
-		const response = trimNewlines(completion.choices[0].messages.content)
+		const response = trimNewlines(completion.choices[0].message.content)
 
 		const uuid = uid.rnd()
 
