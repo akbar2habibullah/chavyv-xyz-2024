@@ -25,7 +25,7 @@ async function groqChatCompletion(input: string) {
 				content: input,
 			},
 		],
-		model: "gemma-7b-it",
+		model: "llama3-70b-8192",
 	})
 }
 
@@ -41,7 +41,7 @@ async function groqChatCompletionWithSystemPrompt(systemPrompt: string, input: s
 				content: input,
 			},
 		],
-		model: "gemma-7b-it",
+		model: "llama3-70b-8192",
 	})
 }
 
