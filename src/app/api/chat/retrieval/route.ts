@@ -58,6 +58,13 @@ async function getChunkData(id: string) {
   return chunkData;
 }
 
+function getLastElements(arr: string[]) {
+  // Calculate the starting index for slicing
+  const startIndex = Math.max(arr.length - 18, 0);
+  // Use slice to get the last 100 elements
+  return arr.slice(startIndex);
+}
+
 export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
@@ -156,7 +163,7 @@ ${chat_history}`
 
 		historyArr.push(uuid)
 
-		await redis2.set("history", historyArr.join(", "))
+		await redis2.set("history", getLastElements(historyArr).join(", "))
 
 		return NextResponse.json({ output: response }, { status: 200 })
 	} catch (e: any) {
