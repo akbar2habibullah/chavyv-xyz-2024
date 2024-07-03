@@ -133,7 +133,7 @@ Me (My Answer as ${process.env.AGENT}): `
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
-				"model": process.env.MODEL_DEFAULT,
+				"model": "lynn/soliloquy-l3",
 				"prompt": SYSTEM_PROMPT,
 				"max_tokens": 64,
 			})
