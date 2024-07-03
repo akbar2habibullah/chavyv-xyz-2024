@@ -16,7 +16,7 @@ const index = new Index({
 
 function getLastElements(arr: VercelChatMessage[]) {
   // Calculate the starting index for slicing
-  const startIndex = Math.max(arr.length - 18, 0);
+  const startIndex = Math.max(arr.length - 30, 0);
   // Use slice to get the last 100 elements
   return arr.slice(startIndex);
 }

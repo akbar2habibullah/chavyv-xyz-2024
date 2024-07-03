@@ -47,8 +47,8 @@ async function getChunkData(id: string) {
     throw new Error('ID not found in the ordered array');
   }
 
-  const startIndex = Math.max(0, idx - 2);
-  const endIndex = Math.min(orderedIds.length - 1, idx + 3);
+  const startIndex = Math.max(0, idx - 1);
+  const endIndex = Math.min(orderedIds.length - 1, idx + 2);
 
   const chunkIds = orderedIds.slice(startIndex, endIndex + 1);
 
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 			return `${message.role === "user" ? name : "Me"}: ${message.content}`
 		}
 
-		const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage)
+		const formattedPreviousMessages = messages.map(formatMessage)
 		const currentMessageContent = messages[messages.length - 1].content
 
 		let options: Intl.DateTimeFormatOptions = {
@@ -123,13 +123,13 @@ export async function POST(req: NextRequest) {
 ${memories}
 Timestamp for now is ${timestamp}.
 And below is my current online conversation with ${process.env.USER_NAME} via text chat interface:
-${chat_history}`
+${chat_history}\n
+Me (My Answer as ${process.env.AGENT}): `
 
 		const completion = await openai.chat.completions.create({
 			model: process.env.MODEL_DEFAULT!,
 			messages: [
 				{ role: "system", content: SYSTEM_PROMPT },
-				{ role: "user", content: currentMessageContent}
 			],
 		})
 	
