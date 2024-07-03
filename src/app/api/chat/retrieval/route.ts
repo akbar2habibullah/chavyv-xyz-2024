@@ -134,7 +134,8 @@ Me (My Answer as ${process.env.AGENT}): `
 			},
 			body: JSON.stringify({
 				"model": process.env.MODEL_DEFAULT,
-				"prompt": SYSTEM_PROMPT
+				"prompt": SYSTEM_PROMPT,
+				"max_tokens": 64,
 			})
 		});
 
