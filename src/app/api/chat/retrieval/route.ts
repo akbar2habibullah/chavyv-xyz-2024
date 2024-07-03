@@ -126,14 +126,21 @@ And below is my current online conversation with ${process.env.USER_NAME} via te
 ${chat_history}\n
 Me (My Answer as ${process.env.AGENT}): `
 
-		const completion = await openai.chat.completions.create({
-			model: process.env.MODEL_DEFAULT!,
-			messages: [
-				{ role: "system", content: SYSTEM_PROMPT },
-			],
-		})
+		const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+			method: "POST",
+			headers: {
+				"Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({
+				"model": process.env.MODEL_DEFAULT,
+				"prompt": SYSTEM_PROMPT
+			})
+		});
+
+		const completion = await completionResponse.json()
 	
-		const response = trimNewlines(completion.choices[0].message.content || "")
+		const response = trimNewlines(completion.text || "")
 
 		const uuid = uid.rnd()
 
