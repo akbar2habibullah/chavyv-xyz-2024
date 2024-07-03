@@ -25,7 +25,8 @@ async function groqChatCompletion(input: string) {
 				content: input,
 			},
 		],
-		model: "llama3-70b-8192",
+		model: "gemma-7b-it",
+    max_tokens: 256
 	})
 }
 
@@ -41,7 +42,8 @@ async function groqChatCompletionWithSystemPrompt(systemPrompt: string, input: s
 				content: input,
 			},
 		],
-		model: "llama3-70b-8192",
+		model: "gemma-7b-it",
+    max_tokens: 256
 	})
 }
 
