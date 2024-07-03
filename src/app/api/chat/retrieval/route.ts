@@ -133,9 +133,14 @@ Me (My Answer as ${process.env.AGENT}): `
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
-				"model": "sao10k/l3-euryale-70b",
+				"model": ["sao10k/l3-euryale-70b", "sao10k/l3-stheno-8b"],
 				"prompt": SYSTEM_PROMPT,
 				"max_tokens": 128,
+				"provider": {
+					"order": [
+						"Infermatic"
+					]
+				},
 			})
 		});
 
