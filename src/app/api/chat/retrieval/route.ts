@@ -123,8 +123,7 @@ export async function POST(req: NextRequest) {
 ${memories}
 Timestamp for now is ${timestamp}.
 And below is my current online conversation with ${process.env.USER_NAME} via text chat interface:
-${chat_history}\n
-Me (My Answer as ${process.env.AGENT}): `
+${chat_history}\n`
 
 		const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
 			method: "POST",
@@ -133,7 +132,7 @@ Me (My Answer as ${process.env.AGENT}): `
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
-				"model": "google/gemma-2-9b-it:free",
+				"model": "sao10k/l3-euryale-70b",
 				"messages":  [
 					{"role": "system", "content": SYSTEM_PROMPT},
 					{"role": "user", "content": currentMessageContent},
