@@ -138,6 +138,11 @@ ${chat_history}\n`
 					{"role": "user", "content": currentMessageContent},
 				],
 				"max_tokens": 128,
+				"provider": {
+					"order": [
+						"Infermatic"
+					]
+				}
 			})
 		});
 
