@@ -35,6 +35,17 @@ const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_KEY,
 })
 
+async function *fetchItems(): AsyncGenerator<String, void, unknown> {
+
+	const sleep = async (ms: number) => 
+			(new Promise(resolve => setTimeout(resolve, ms)))
+
+	for( let i = 0 ; i < 10 ; ++i ) {
+			await sleep(1000)
+			yield "[loading]"
+	}
+}
+
 function trimNewlines(input: string): string {
   return input.replace(/^\s+|\s+$/g, '');
 }
@@ -132,17 +143,17 @@ ${chat_history}\n`
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify({
-				"model": "sao10k/l3-euryale-70b",
+				"model": "google/gemma-2-9b-it:free",
 				"messages":  [
 					{"role": "system", "content": SYSTEM_PROMPT},
 					{"role": "user", "content": currentMessageContent},
 				],
 				"max_tokens": 128,
-				"provider": {
-					"order": [
-						"Infermatic"
-					]
-				}
+				// "provider": {
+				// 	"order": [
+				// 		"Infermatic"
+				// 	]
+				// }
 			})
 		});
 
