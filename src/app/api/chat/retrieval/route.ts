@@ -165,11 +165,11 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
 					role: "system",
 					content: SYSTEM_PROMPT,
 				},
-				...messages.map((data: any) => ({ role: data.role, content: data.content }))
+				...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
 			],
 			model: "gemma2-9b-it",
 			temperature: 0.9,
-			stop: [`${name}:`],
+			stop: [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],
 		});
 
 		const completion = await completionPromise;
