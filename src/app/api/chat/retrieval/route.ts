@@ -8,7 +8,7 @@ const groq = new Groq({
 	apiKey: process.env.GROQ_API_KEY,
 });
 
-const redis = new Redis({
+const redis1 = new Redis({
 	url: process.env.REDIS_LINK!,
 	token: process.env.REDIS_TOKEN!,
 });
@@ -46,7 +46,8 @@ function trimNewlines(input: string): string {
 }
 
 async function getChunkData(id: string, memory: number) {
-	const history: string = await redis.get("history") || "";
+	const history: string = memory === 1 ? await redis1.get("history") || ""  : await redis2.get("history") || "";
+
 	const orderedIds = history.split(", ");
 	const idx = orderedIds.indexOf(id);
 	if (idx === -1) {
@@ -164,7 +165,7 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
 					role: "system",
 					content: SYSTEM_PROMPT,
 				},
-				...messages
+				...messages.map((data: any) => ({ role: data.role, content: data.content }))
 			],
 			model: "gemma2-9b-it",
 			temperature: 0.9,
@@ -174,8 +175,6 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
 		const completion = await completionPromise;
 
 		cancelToken.cancel = true; // Stop the loading messages
-
-		console.log(completion);
 
 		const response = trimNewlines(completion.choices[0].message.content);
 
@@ -210,6 +209,7 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
 		return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 
 	} catch (e: any) {
+		console.error(e.message)
 		cancelToken.cancel = true; // Stop the loading messages
 		writer.close();
 		return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });

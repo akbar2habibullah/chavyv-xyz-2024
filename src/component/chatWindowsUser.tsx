@@ -30,8 +30,10 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 	})
 
 	useEffect(() => {
-		if (bufferedMessages.length > 0 && bufferedMessages[bufferedMessages.length - 1].content.startsWith("[Output]")) {
-			const outputMessage = bufferedMessages[bufferedMessages.length - 1].content.replace("[Output]", "")
+		console.log(bufferedMessages)
+		console.log(messages)
+		if (bufferedMessages.length > 0 && bufferedMessages[bufferedMessages.length - 1].content.includes("[Output]")) {
+			const outputMessage = bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1]
 			const newMessages = trimMessage([...messages, { id: messages.length.toString(), content: outputMessage, role: "assistant" }])
 			setMessages(newMessages)
 			setBufferedMessages([])
@@ -66,26 +68,11 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 
 		if (reader) {
 			let buffer = ""
-
+			
 			while (true) {
 				const { done, value } = await reader.read()
 				if (done) break;
 				buffer += decoder.decode(value, { stream: true })
-
-				const lines = buffer.split("\n")
-				buffer = lines.pop() ?? ""
-
-				for (const line of lines) {
-					if (line.startsWith("data:")) {
-						const message = line.slice(5).trim()
-						if (message) {
-							setBufferedMessages((prev) => [
-								...prev,
-								{ id: prev.length.toString(), content: message, role: "assistant" },
-							])
-						}
-					}
-				}
 			}
 
 			// Final part of buffer
@@ -95,18 +82,6 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 					{ id: prev.length.toString(), content: buffer, role: "assistant" },
 				])
 			}
-		}
-
-		if (!response.ok) {
-			const errorJson = await response.json()
-			if (errorJson.error) {
-				toast(errorJson.error, {
-					theme: "dark",
-				});
-				setLoading(false);
-				throw new Error(errorJson.error)
-			}
-			setLoading(false)
 		}
 	}
 
