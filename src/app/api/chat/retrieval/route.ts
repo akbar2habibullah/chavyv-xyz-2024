@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
 		const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
 ${memories}
 Timestamp for now is ${timestamp}.
-And I'm currently in online conversation with ${process.env.USER_NAME} via text chat interface.`
+And I'm currently in online conversation with ${name} via text chat interface.`
 
 		const completion = await groq.chat.completions.create({
 			messages: [
@@ -153,6 +153,8 @@ And I'm currently in online conversation with ${process.env.USER_NAME} via text 
 				...messages
 			],
 			model: "gemma2-9b-it",
+			temperature: 0.9,
+			stop: [`${name}:`],
 		})
 
 		console.log(completion)
