@@ -1,88 +1,90 @@
-import { NextRequest, NextResponse } from "next/server"
-
-import { Redis } from '@upstash/redis'
-import { Index } from "@upstash/vector"
-import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention"
-
-import Groq from "groq-sdk"
+import { NextRequest, NextResponse } from "next/server";
+import { Redis } from '@upstash/redis';
+import { Index } from "@upstash/vector";
+import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention";
+import Groq from "groq-sdk";
 
 const groq = new Groq({
 	apiKey: process.env.GROQ_API_KEY,
-})
-
+});
 
 const redis = new Redis({
-  url: process.env.REDIS_LINK!,
-  token: process.env.REDIS_TOKEN!,
-})
+	url: process.env.REDIS_LINK!,
+	token: process.env.REDIS_TOKEN!,
+});
 
 const index1 = new Index({
-  url: process.env.UPSTASH_LINK,
-  token: process.env.UPSTASH_TOKEN,
-})
+	url: process.env.UPSTASH_LINK,
+	token: process.env.UPSTASH_TOKEN,
+});
 
 const redis2 = new Redis({
-  url: process.env.REDIS2_LINK!,
-  token: process.env.REDIS2_TOKEN!,
-})
+	url: process.env.REDIS2_LINK!,
+	token: process.env.REDIS2_TOKEN!,
+});
 
 const index2 = new Index({
-  url: process.env.UPSTASH2_LINK,
-  token: process.env.UPSTASH2_TOKEN,
-})
+	url: process.env.UPSTASH2_LINK,
+	token: process.env.UPSTASH2_TOKEN,
+});
 
-import ShortUniqueId from "short-unique-id"
+import ShortUniqueId from "short-unique-id";
 
-async function *fetchItems(): AsyncGenerator<String, void, unknown> {
+async function* fetchLoadingMessages(cancelToken: { cancel: boolean }): AsyncGenerator<string, void, unknown> {
+	const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-	const sleep = async (ms: number) => 
-			(new Promise(resolve => setTimeout(resolve, ms)))
-
-	for( let i = 0 ; i < 10 ; ++i ) {
-			await sleep(1000)
-			yield "[loading]"
+	for (let i = 0; i < 10; ++i) {
+		if (cancelToken.cancel) break;
+		await sleep(3000); // Sleep for 3 seconds
+		if (cancelToken.cancel) break;
+		yield "[Loading]";
 	}
 }
 
 function trimNewlines(input: string): string {
-  return input.replace(/^\s+|\s+$/g, '');
+	return input.replace(/^\s+|\s+$/g, '');
 }
 
 async function getChunkData(id: string, memory: number) {
-  const history: string = await redis.get("history") || "";
-  const orderedIds = history.split(", ")
-  const idx = orderedIds.indexOf(id);
-  if (idx === -1) {
-    throw new Error('ID not found in the ordered array');
-  }
+	const history: string = await redis.get("history") || "";
+	const orderedIds = history.split(", ");
+	const idx = orderedIds.indexOf(id);
+	if (idx === -1) {
+		throw new Error('ID not found in the ordered array');
+	}
 
-  const startIndex = Math.max(0, idx - 1);
-  const endIndex = Math.min(orderedIds.length - 1, idx + 2);
+	const startIndex = Math.max(0, idx - 1);
+	const endIndex = Math.min(orderedIds.length - 1, idx + 2);
 
-  const chunkIds = orderedIds.slice(startIndex, endIndex + 1);
+	const chunkIds = orderedIds.slice(startIndex, endIndex + 1);
 
-  
-  const chunkData = memory === 1 ? await index1.fetch(chunkIds, {includeMetadata: true}) :  await index2.fetch(chunkIds, {includeMetadata: true});
+	const chunkData = memory === 1 ? await index1.fetch(chunkIds, { includeMetadata: true }) : await index2.fetch(chunkIds, { includeMetadata: true });
 
-  return chunkData;
+	return chunkData;
 }
 
-export const runtime = "edge"
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
-	try {
-		const uid = new ShortUniqueId({ length: 10 })
+	const { readable, writable } = new TransformStream();
+	const writer = writable.getWriter();
 
-		const body = await req.json()
-		const messages = body.messages ?? []
-		const name: string = body.user ?? "Anonymous User"
-		const id: string = body.user_id ?? uid.rnd()
+	const cancelToken = { cancel: false };
+
+	try {
+		const uid = new ShortUniqueId({ length: 10 });
+
+		const body = await req.json();
+		const messages = body.messages ?? [];
+		const name: string = body.user ?? "Anonymous User";
+		const id: string = body.user_id ?? uid.rnd();
 
 		if (name !== process.env.USER_NAME || id !== process.env.USER_ID) {
-			throw new Error("Unauthorized")
+			writer.close();
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const currentMessageContent = messages[messages.length - 1].content
+		const currentMessageContent = messages[messages.length - 1].content;
 
 		let options: Intl.DateTimeFormatOptions = {
 			timeZone: "Asia/Jakarta",
@@ -93,15 +95,27 @@ export async function POST(req: NextRequest) {
 			minute: "numeric",
 			second: "numeric",
 			weekday: "long",
-		}
-		let dateFormatter = new Intl.DateTimeFormat([], options)
+		};
+		let dateFormatter = new Intl.DateTimeFormat([], options);
 
-		const timestamp = dateFormatter.format(new Date())
+		const timestamp = dateFormatter.format(new Date());
 
-		const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, {systemPrompt: process.env.AGENT_EGO, threshold: 0.15})
-		const inputKeyWordsString = inputKeyWords.join(", ")
+		writer.write("[Loading]");
 
-		const inputEmbedding = await getEmbedding(inputKeyWordsString)
+		const loadingMessages = fetchLoadingMessages(cancelToken);
+
+		const sendLoadingMessages = async () => {
+			for await (const message of loadingMessages) {
+				writer.write(message);
+			}
+		};
+
+		const loadingPromise = sendLoadingMessages();
+
+		const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, { systemPrompt: process.env.AGENT_EGO, threshold: 0.15 });
+		const inputKeyWordsString = inputKeyWords.join(", ");
+
+		const inputEmbedding = await getEmbedding(inputKeyWordsString);
 
 		const retrieval1 = await index1.query({
 			vector: inputEmbedding,
@@ -115,36 +129,36 @@ export async function POST(req: NextRequest) {
 			includeMetadata: true,
 		});
 
-		let memories = ``
+		let memories = ``;
 
 		for (let i = 0; i < retrieval1.length; i++) {
-			const responseRange = await getChunkData(retrieval1[i].id as unknown as string, 1)
+			const responseRange = await getChunkData(retrieval1[i].id as unknown as string, 1);
 
 			const responseParsed = responseRange.map(
 				(data) => `${name}: ${data?.metadata?.input}\n
 				Me: ${data?.metadata?.output}\n`
-			).join()
+			).join();
 
-			memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`
+			memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`;
 		}
 
 		for (let i = 0; i < retrieval2.length; i++) {
-			const responseRange = await getChunkData(retrieval2[i].id as unknown as string, 2)
+			const responseRange = await getChunkData(retrieval2[i].id as unknown as string, 2);
 
 			const responseParsed = responseRange.map(
 				(data) => `${name}: ${data?.metadata?.input}\n
 				Me: ${data?.metadata?.output}\n`
-			).join()
+			).join();
 
-			memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`
+			memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`;
 		}
 
 		const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
 ${memories}
 Timestamp for now is ${timestamp}.
-And I'm currently in online conversation with ${name} via text chat interface.`
+And I'm currently in online conversation with ${name} via text chat interface.`;
 
-		const completion = await groq.chat.completions.create({
+		const completionPromise = groq.chat.completions.create({
 			messages: [
 				{
 					role: "system",
@@ -155,13 +169,17 @@ And I'm currently in online conversation with ${name} via text chat interface.`
 			model: "gemma2-9b-it",
 			temperature: 0.9,
 			stop: [`${name}:`],
-		})
+		});
 
-		console.log(completion)
-	
-		const response = trimNewlines(completion.choices[0].message.content)
+		const completion = await completionPromise;
 
-		const uuid = uid.rnd()
+		cancelToken.cancel = true; // Stop the loading messages
+
+		console.log(completion);
+
+		const response = trimNewlines(completion.choices[0].message.content);
+
+		const uuid = uid.rnd();
 
 		await index2.upsert({
 			id: uuid,
@@ -176,17 +194,24 @@ And I'm currently in online conversation with ${name} via text chat interface.`
 			},
 		});
 
-		
-    const history = await redis2.get<string>("history") || "";
+		const history = await redis2.get<string>("history") || "";
 
-		let historyArr = history.split(", ")
+		let historyArr = history.split(", ");
 
-		historyArr.push(uuid)
+		historyArr.push(uuid);
 
-		await redis2.set("history", historyArr.join(", "))
+		await redis2.set("history", historyArr.join(", "));
 
-		return NextResponse.json({ output: response }, { status: 200 })
+		writer.write("[Output]" + response);
+		writer.close();
+
+		await loadingPromise; // Wait for the loading messages to stop
+
+		return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+
 	} catch (e: any) {
-		return NextResponse.json({ error: e.message }, { status: e.status ?? 500 })
+		cancelToken.cancel = true; // Stop the loading messages
+		writer.close();
+		return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
 	}
 }
