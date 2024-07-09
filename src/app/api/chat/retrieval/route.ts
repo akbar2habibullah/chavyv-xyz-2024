@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { Message as VercelChatMessage } from "ai"
-
-import OpenAI from "openai"
 
 import { Redis } from '@upstash/redis'
 import { Index } from "@upstash/vector"
 import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention"
+
+import Groq from "groq-sdk"
+
+const groq = new Groq({
+	apiKey: process.env.GROQ_API_KEY,
+})
 
 
 const redis = new Redis({
@@ -13,7 +16,7 @@ const redis = new Redis({
   token: process.env.REDIS_TOKEN!,
 })
 
-const index = new Index({
+const index1 = new Index({
   url: process.env.UPSTASH_LINK,
   token: process.env.UPSTASH_TOKEN,
 })
@@ -30,11 +33,6 @@ const index2 = new Index({
 
 import ShortUniqueId from "short-unique-id"
 
-const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_KEY,
-})
-
 async function *fetchItems(): AsyncGenerator<String, void, unknown> {
 
 	const sleep = async (ms: number) => 
@@ -50,7 +48,7 @@ function trimNewlines(input: string): string {
   return input.replace(/^\s+|\s+$/g, '');
 }
 
-async function getChunkData(id: string) {
+async function getChunkData(id: string, memory: number) {
   const history: string = await redis.get("history") || "";
   const orderedIds = history.split(", ")
   const idx = orderedIds.indexOf(id);
@@ -64,7 +62,7 @@ async function getChunkData(id: string) {
   const chunkIds = orderedIds.slice(startIndex, endIndex + 1);
 
   
-  const chunkData = await index.fetch(chunkIds, {includeMetadata: true})
+  const chunkData = memory === 1 ? await index1.fetch(chunkIds, {includeMetadata: true}) :  await index2.fetch(chunkIds, {includeMetadata: true});
 
   return chunkData;
 }
@@ -84,11 +82,6 @@ export async function POST(req: NextRequest) {
 			throw new Error("Unauthorized")
 		}
 
-		const formatMessage = (message: VercelChatMessage) => {
-			return `${message.role === "user" ? name : "Me"}: ${message.content}`
-		}
-
-		const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage)
 		const currentMessageContent = messages[messages.length - 1].content
 
 		let options: Intl.DateTimeFormatOptions = {
@@ -103,7 +96,6 @@ export async function POST(req: NextRequest) {
 		}
 		let dateFormatter = new Intl.DateTimeFormat([], options)
 
-		const chat_history = formattedPreviousMessages.join("\n") || "There's no conversation history yet"
 		const timestamp = dateFormatter.format(new Date())
 
 		const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, {systemPrompt: process.env.AGENT_EGO, threshold: 0.15})
@@ -111,16 +103,33 @@ export async function POST(req: NextRequest) {
 
 		const inputEmbedding = await getEmbedding(inputKeyWordsString)
 
-		const retrieval = await index.query({
+		const retrieval1 = await index1.query({
 			vector: inputEmbedding,
-			topK: 3,
+			topK: 2,
+			includeMetadata: true,
+		});
+
+		const retrieval2 = await index2.query({
+			vector: inputEmbedding,
+			topK: 1,
 			includeMetadata: true,
 		});
 
 		let memories = ``
 
-		for (let i = 0; i < retrieval.length; i++) {
-			const responseRange = await getChunkData(retrieval[i].id as unknown as string)
+		for (let i = 0; i < retrieval1.length; i++) {
+			const responseRange = await getChunkData(retrieval1[i].id as unknown as string, 1)
+
+			const responseParsed = responseRange.map(
+				(data) => `${name}: ${data?.metadata?.input}\n
+				Me: ${data?.metadata?.output}\n`
+			).join()
+
+			memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`
+		}
+
+		for (let i = 0; i < retrieval2.length; i++) {
+			const responseRange = await getChunkData(retrieval2[i].id as unknown as string, 2)
 
 			const responseParsed = responseRange.map(
 				(data) => `${name}: ${data?.metadata?.input}\n
@@ -133,31 +142,18 @@ export async function POST(req: NextRequest) {
 		const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
 ${memories}
 Timestamp for now is ${timestamp}.
-And below is my current online conversation with ${process.env.USER_NAME} via text chat interface:
-${chat_history}\n`
+And I'm currently in online conversation with ${process.env.USER_NAME} via text chat interface.`
 
-		const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-			method: "POST",
-			headers: {
-				"Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({
-				"model": "google/gemma-2-9b-it:free",
-				"messages":  [
-					{"role": "system", "content": SYSTEM_PROMPT},
-					{"role": "user", "content": currentMessageContent},
-				],
-				"max_tokens": 128,
-				// "provider": {
-				// 	"order": [
-				// 		"Infermatic"
-				// 	]
-				// }
-			})
-		});
-
-		const completion = await completionResponse.json()
+		const completion = await groq.chat.completions.create({
+			messages: [
+				{
+					role: "system",
+					content: SYSTEM_PROMPT,
+				},
+				...messages
+			],
+			model: "gemma2-9b-it",
+		})
 
 		console.log(completion)
 	
@@ -173,7 +169,8 @@ ${chat_history}\n`
 				input: currentMessageContent,
 				output: response,
 				timestamp: timestamp,
-				completePrompt: SYSTEM_PROMPT
+				completePrompt: SYSTEM_PROMPT,
+				messages: messages,
 			},
 		});
 
