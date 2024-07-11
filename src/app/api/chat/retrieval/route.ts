@@ -45,6 +45,23 @@ function trimNewlines(input: string): string {
     return input.replace(/^\s+|\s+$/g, '');
 }
 
+function subtractYearAndHalf(dateString: string): string {
+	// Extract the date and time part from the input string
+	const dateTimePart = dateString.split(', ')[1] + ', ' + dateString.split(', ')[2];
+
+	// Parse the extracted date and time part to a Date object
+	const date = new Date(dateTimePart);
+
+	// Subtract a year and a half (18 months) from the date
+	date.setMonth(date.getMonth() - 18);
+
+	// Format the date back to the original format
+	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+	const formattedDate = `${days[date.getDay()]}, ${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}, ${date.toLocaleTimeString('en-US')}`;
+
+	return formattedDate;
+}
+
 async function getChunkData(id: string, memory: number) {
     const history: string = memory === 1 ? await redis1.get("history") || "" : await redis2.get("history") || "";
 
@@ -142,7 +159,7 @@ export async function POST(req: NextRequest) {
                 Me: ${data?.metadata?.output}\n`
             ).join();
 
-            memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`;
+            memories += `Conversation I remember from ${subtractYearAndHalf(responseRange[0]?.metadata?.timestamp as unknown as string)}:\n${responseParsed}\n\n`;
         }
 
         for (let i = 0; i < retrieval2.length; i++) {
