@@ -38,25 +38,6 @@ function trimNewlines(input: string): string {
     return input.replace(/^\s+|\s+$/g, '');
 }
 
-async function getChunkData(id: string) {
-    const history: string = await redis.get("history") || "" ;
-
-    const orderedIds = history.split(", ");
-    const idx = orderedIds.indexOf(id);
-    if (idx === -1) {
-        throw new Error('ID not found in the ordered array');
-    }
-
-    const startIndex = Math.max(0, idx - 1);
-    const endIndex = Math.min(orderedIds.length - 1, idx + 2);
-
-    const chunkIds = orderedIds.slice(startIndex, endIndex + 1);
-
-    const chunkData = await index.fetch(chunkIds, { includeMetadata: true }) ;
-
-    return chunkData;
-}
-
 export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
@@ -68,12 +49,14 @@ export async function POST(req: NextRequest) {
     try {
         const uid = new ShortUniqueId({ length: 10 });
 
+        const uuid = uid.rnd();
+
         const body = await req.json();
         const messages = body.messages ?? [];
         const name: string = body.user ?? "Anonymous User";
         const id: string = body.user_id ?? uid.rnd();
 
-				messages[messages.length - 1].id = uid
+		messages[messages.length - 1].id = uuid
 
         const currentMessageContent = messages[messages.length - 1].content;
 
@@ -179,8 +162,6 @@ And I'm currently in online conversation with ${name}#${id} via text chat interf
         cancelToken.cancel = true; // Stop the loading messages
 
         const response = trimNewlines(completion.choices[0].message.content);
-
-        const uuid = uid.rnd();
 
         await index.upsert({
             id: uuid,

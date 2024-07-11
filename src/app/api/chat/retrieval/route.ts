@@ -97,7 +97,9 @@ export async function POST(req: NextRequest) {
         const name: string = body.user ?? "Anonymous User";
         const id: string = body.user_id ?? uid.rnd();
 
-				messages[messages.length - 1].id = uid
+				const uuid = uid.rnd();
+
+				messages[messages.length - 1].id = uuid
 
         if (name !== process.env.USER_NAME || id !== process.env.USER_ID) {
             writer.close();
@@ -196,8 +198,6 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
         cancelToken.cancel = true; // Stop the loading messages
 
         const response = trimNewlines(completion.choices[0].message.content);
-
-        const uuid = uid.rnd();
 
         await index2.upsert({
             id: uuid,
