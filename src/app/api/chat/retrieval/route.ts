@@ -52,8 +52,8 @@ function subtractYearAndHalf(dateString: string): string {
 	// Parse the extracted date and time part to a Date object
 	const date = new Date(dateTimePart);
 
-	// Subtract a year and a half (18 months) from the date
-	date.setMonth(date.getMonth() - 18);
+	// Subtract a year and a half (15 months) from the date
+	date.setMonth(date.getMonth() - 15);
 
 	// Format the date back to the original format
 	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
