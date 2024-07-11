@@ -39,12 +39,11 @@ export function ChatWindowUser(props: { endpoint: string; placeholder?: string; 
 			setBufferedMessages([])
 			setLoading(false)
 		} else if (bufferedMessages.length > 0 && bufferedMessages[bufferedMessages.length - 1].content.includes("[Error]")) {
-			toast( bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1], {
+			toast( bufferedMessages[bufferedMessages.length - 1].content.split("[Error]")[1], {
 				theme: "dark",
 			})
 			setBufferedMessages([])
 			setLoading(false)
-			throw new Error(bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1])
 		}
 	}, [bufferedMessages, messages, setMessages])
 

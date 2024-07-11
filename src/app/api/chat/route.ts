@@ -198,7 +198,7 @@ And I'm currently in online conversation with ${name}#${id} via text chat interf
         console.error(e.message)
         cancelToken.cancel = true; // Stop the loading messages
 
-				writer.write(new TextEncoder().encode("[Error]" + e.message));
+		writer.write(new TextEncoder().encode("[Error]" + e.message));
         writer.close();
         return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
