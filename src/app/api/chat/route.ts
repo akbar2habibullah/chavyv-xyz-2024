@@ -91,12 +91,18 @@ export async function POST(req: NextRequest) {
         })
         const preresponse = preresult.choices[0]?.message?.content || ""
 
-        const tool = new WikipediaQueryRun({
-          topKResults: 2,
-          maxDocContentLength: 1000,
-        })
-    
-        const wikires = preresponse !== "(No keywords)" ? await tool.invoke(preresponse) : ""
+        let wikires = ""
+
+        try {
+            const tool = new WikipediaQueryRun({
+                topKResults: 2,
+                maxDocContentLength: 1000,
+            })
+
+            wikires = preresponse !== "(No keywords)" ? await tool.invoke(preresponse) : ""
+        } catch(e: any) {
+            console.error(e.message)
+        }
 
         const loadingMessages = fetchLoadingMessages(cancelToken);
 
