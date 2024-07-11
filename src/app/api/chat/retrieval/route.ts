@@ -230,7 +230,9 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
     } catch (e: any) {
         console.error(e.message)
         cancelToken.cancel = true; // Stop the loading messages
+
+				writer.write(new TextEncoder().encode("[Error]" + e.message));
         writer.close();
-        return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
+        return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
 }
