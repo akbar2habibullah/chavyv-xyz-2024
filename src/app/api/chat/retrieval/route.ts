@@ -80,6 +80,8 @@ export async function POST(req: NextRequest) {
         const name: string = body.user ?? "Anonymous User";
         const id: string = body.user_id ?? uid.rnd();
 
+				messages[messages.length - 1].id = uid
+
         if (name !== process.env.USER_NAME || id !== process.env.USER_ID) {
             writer.close();
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
