@@ -4,7 +4,7 @@ import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 
 import { Message, useChat } from "ai/react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { FormEvent } from "react"
 
 import { ChatMessageBubble } from "@/component/chatMessageBubble"
@@ -18,6 +18,7 @@ export function ChatWindow(props: { endpoint: string; placeholder?: string; name
 
 	const { endpoint, placeholder } = props
 	const [loading, setLoading] = useState<boolean>(false)
+	const [bufferedMessages, setBufferedMessages] = useState<Message[]>([])
 
 	const { messages, input, setInput, handleInputChange, setMessages } = useChat({
 		api: endpoint,
@@ -27,6 +28,25 @@ export function ChatWindow(props: { endpoint: string; placeholder?: string; name
 			})
 		},
 	})
+
+	useEffect(() => {
+		console.log(bufferedMessages)
+		console.log(messages)
+		if (bufferedMessages.length > 0 && bufferedMessages[bufferedMessages.length - 1].content.includes("[Output]")) {
+			const outputMessage = bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1]
+			const newMessages = trimMessage([...messages, { id: messages.length.toString(), content: outputMessage, role: "assistant" }])
+			setMessages(newMessages)
+			setBufferedMessages([])
+			setLoading(false)
+		} else if (bufferedMessages.length > 0 && bufferedMessages[bufferedMessages.length - 1].content.includes("[Error]")) {
+			toast( bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1], {
+				theme: "dark",
+			})
+			setBufferedMessages([])
+			setLoading(false)
+			throw new Error(bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1])
+		}
+	}, [bufferedMessages, messages, setMessages])
 
 	async function sendMessage(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault()
@@ -49,19 +69,26 @@ export function ChatWindow(props: { endpoint: string; placeholder?: string; name
 				user_id: props.id,
 			}),
 		})
-		const json = await response.json()
-		if (response.status === 200) {
-			const newMessages = messagesWithUserReply
-			setMessages(trimMessage([...newMessages, { id: newMessages.length.toString(), content: json.output, role: "assistant" }]))
-			setLoading(false)
-		} else {
-			if (json.error) {
-				toast(json.error, {
-					theme: "dark",
-				})
-				throw new Error(json.error)
+
+		const reader = response.body?.getReader()
+		const decoder = new TextDecoder("utf-8")
+
+		if (reader) {
+			let buffer = ""
+			
+			while (true) {
+				const { done, value } = await reader.read()
+				if (done) break;
+				buffer += decoder.decode(value, { stream: true })
 			}
-			setLoading(false)
+
+			// Final part of buffer
+			if (buffer) {
+				setBufferedMessages((prev) => [
+					...prev,
+					{ id: prev.length.toString(), content: buffer, role: "assistant" },
+				])
+			}
 		}
 	}
 

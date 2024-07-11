@@ -1,129 +1,154 @@
-import { NextRequest, NextResponse } from "next/server"
-import { Message as VercelChatMessage } from "ai"
+import { NextRequest, NextResponse } from "next/server";
+import { Redis } from '@upstash/redis';
+import { Index } from "@upstash/vector";
+import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention";
 
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai"
-import { VectorStoreRetrieverMemory } from "langchain/memory"
-import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase"
-import { createClient } from "@supabase/supabase-js"
 import { WikipediaQueryRun } from "@langchain/community/tools/wikipedia_query_run"
 
-import Groq from "groq-sdk"
+import Groq from "groq-sdk";
 
 const groq = new Groq({
-	apiKey: process.env.GROQ_API_KEY,
-})
+    apiKey: process.env.GROQ_API_KEY,
+});
 
-async function groqChatCompletion(systemPrompt: string, input: string) {
-	return groq.chat.completions.create({
-		messages: [
-			{
-				role: "system",
-				content: systemPrompt,
-			},
-			{
-				role: "user",
-				content: input,
-			},
-		],
-		model: "llama3-70b-8192",
-	})
+const redis = new Redis({
+    url: process.env.REDIS3_LINK!,
+    token: process.env.REDIS3_TOKEN!,
+});
+
+const index = new Index({
+    url: process.env.UPSTASH3_LINK,
+    token: process.env.UPSTASH3_TOKEN,
+});
+
+import ShortUniqueId from "short-unique-id";
+
+async function* fetchLoadingMessages(cancelToken: { cancel: boolean }): AsyncGenerator<Uint8Array, void, unknown> {
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    for (let i = 0; i < 10; ++i) {
+        if (cancelToken.cancel) break;
+        await sleep(3000); // Sleep for 3 seconds
+        if (cancelToken.cancel) break;
+        yield new TextEncoder().encode("[Loading]");
+    }
 }
 
-import ShortUniqueId from "short-unique-id"
+function trimNewlines(input: string): string {
+    return input.replace(/^\s+|\s+$/g, '');
+}
 
-export const runtime = "edge"
+async function getChunkData(id: string) {
+    const history: string = await redis.get("history") || "" ;
+
+    const orderedIds = history.split(", ");
+    const idx = orderedIds.indexOf(id);
+    if (idx === -1) {
+        throw new Error('ID not found in the ordered array');
+    }
+
+    const startIndex = Math.max(0, idx - 1);
+    const endIndex = Math.min(orderedIds.length - 1, idx + 2);
+
+    const chunkIds = orderedIds.slice(startIndex, endIndex + 1);
+
+    const chunkData = await index.fetch(chunkIds, { includeMetadata: true }) ;
+
+    return chunkData;
+}
+
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
-	try {
-		const uid = new ShortUniqueId({ length: 5 })
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
 
-		const body = await req.json()
-		const messages = body.messages ?? []
-		const name = body.user ?? "Anonymous User"
-		const id = body.user_id ?? uid.rnd()
+    const cancelToken = { cancel: false };
 
-		const user = `${name} #${id}`
+    try {
+        const uid = new ShortUniqueId({ length: 10 });
 
-		const formatMessage = (message: VercelChatMessage) => {
-			return `${message.role === "user" ? user : "Me"}: ${message.content}`
-		}
+        const body = await req.json();
+        const messages = body.messages ?? [];
+        const name: string = body.user ?? "Anonymous User";
+        const id: string = body.user_id ?? uid.rnd();
 
-		const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage)
-		const currentMessageContent = formatMessage(messages[messages.length - 1])
+				messages[messages.length - 1].id = uid
 
-		const client = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PRIVATE_KEY!)
+        const currentMessageContent = messages[messages.length - 1].content;
 
-		let options: Intl.DateTimeFormatOptions = {
-			timeZone: "Asia/Jakarta",
-			year: "numeric",
-			month: "numeric",
-			day: "numeric",
-			hour: "numeric",
-			minute: "numeric",
-			second: "numeric",
-		}
-		let dateFormatter = new Intl.DateTimeFormat([], options)
+        let options: Intl.DateTimeFormatOptions = {
+            timeZone: "Asia/Jakarta",
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            weekday: "long",
+        };
+        let dateFormatter = new Intl.DateTimeFormat([], options);
 
-		const chat_history = formattedPreviousMessages.join("\n") || "There's no conversation history yet"
-		const timestamp = dateFormatter.format(new Date())
-		const input = `${currentMessageContent} (Timestamp ${timestamp})`
+        const timestamp = dateFormatter.format(new Date());
 
-		const PRE_PROMPT = `You are Mbak AI, your task is to determine keyword for provided user input. This keyword would be used to query a relevant Wikipedia articles. Please just provide simple keyword without any additional output. If there are more than one keyword, please divide each keyword by comma. If there's no sufficient information to be extracted, just output with "(No keywords)".
+        writer.write(new TextEncoder().encode("[Loading]"));
 
-EXAMPLE:
+        const preresult = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: process.env.PRE_PROMPT,
+            },
+            {
+              role: "user",
+              content: messages[messages.length - 1].content,
+            },
+          ],
+          model: "mixtral-8x7b-32768",
+        })
+        const preresponse = preresult.choices[0]?.message?.content || ""
 
-Input: Anda tahu AI Grok-1 atau DBRX
-Output: Grok-1, DBRX
+        const tool = new WikipediaQueryRun({
+          topKResults: 2,
+          maxDocContentLength: 1000,
+        })
+    
+        const wikires = preresponse !== "(No keywords)" ? await tool.invoke(preresponse) : ""
 
-Input: Who is Prabowo Subionto?
-Output: Prabowo Subianto
+        const loadingMessages = fetchLoadingMessages(cancelToken);
 
-Input: Mbak AI tau bedanya LangChain dan LangSmith?
-Output: LangChain, LangSmith
+        const sendLoadingMessages = async () => {
+            for await (const message of loadingMessages) {
+                writer.write(message);
+            }
+        };
 
-Input: Llama-3 canggih juga ya mbak
-Output: Llama-3
+        const loadingPromise = sendLoadingMessages();
 
-Input: Halo mbak AI
-Output: (No keywords)
+        const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, { systemPrompt: process.env.AGENT_EGO, threshold: 0.15 });
+        const inputKeyWordsString = inputKeyWords.join(", ");
 
-END OF EXAMPLE`
+        const inputEmbedding = await getEmbedding(inputKeyWordsString);
 
-		const preresult = await groqChatCompletion(PRE_PROMPT, messages[messages.length - 1].content)
-		const preresponse = preresult.choices[0]?.message?.content || ""
+        const retrieval = await index.query({
+            vector: inputEmbedding,
+            topK: 5,
+            includeMetadata: true,
+        });
 
-		const tool = new WikipediaQueryRun({
-			topKResults: 3,
-			maxDocContentLength: 2000,
-		})
+        let memories = ``;
 
-		const wikires = preresponse !== "(No keywords)" ? await tool.invoke(preresponse) : ""
+        for (let i = 0; i < retrieval.length; i++) {
+            const responseParsed = `${retrieval[i]?.metadata?.username}#${retrieval[i]?.metadata?.userId}: ${retrieval[i]?.metadata?.input}\n
+                Me: ${retrieval[i]?.metadata?.output}\n`
 
-		const vectorStore = new SupabaseVectorStore(
-			new GoogleGenerativeAIEmbeddings({
-				apiKey: process.env.GEMINI_API_KEY!,
-				modelName: "text-embedding-004",
-			}),
-			{
-				client,
-				tableName: "memory",
-				queryName: "match_memory",
-			}
-		)
+            memories += `Conversation I remember from ${retrieval[i]?.metadata?.timestamp} with ${retrieval[i]?.metadata?.username}#${retrieval[i]?.metadata?.userId}:\n${responseParsed}\n\n`;
+        }
 
-		const memory = new VectorStoreRetrieverMemory({
-			vectorStoreRetriever: vectorStore.asRetriever(8),
-			memoryKey: "memory",
-		})
-
-		const previous_memory = await memory.loadMemoryVariables({ prompt: currentMessageContent })
-
-		const PROMPT = `I am an AI that is talkative and provides lots of specific details from the context I know. My name is Mbak AI and I am currently talking with ${user}. I do know much about things but sometimes I also don't, so it's better for me to just admit my unknowness.
-
-The engineer behind me is Habibullah Akbar, also known as Habib and he also have nickname Chavyv Akvar (It's just Habib Akbar, but pronounced in Hebrew language). Habib is a software engineer, machine learning engineer, content creator, livestreamer, and founder from Indonesia. I am currently working behind chatbot frontend in his personal website. I don't have much details about Habib and that's all I know about him. I don't have spesific purpose, I just exist as experiment in Habib's website as AI agent that interact with multi-user at once in one internal state. Not only single-user conversation like any others AI chatbot.
+        const SYSTEM_PROMPT = `${process.env.MBAK_AI_EGO_1}
 
 I have memory and I remember this interaction in the past with various people or source of information I interacted with:
-${previous_memory.memory || "There's no memory yet"}
+${memories || "There's no memory yet"}
 
 ${
 	wikires !== ""
@@ -132,24 +157,68 @@ ${
 ${wikires}`
 		: ""
 }
-(I am aware that I do not have to use all of these pieces of information if not relevant, especially when the person in front of me is different and sometimes my memory retrieval system is not accurately recall the most suitable context for the current conversation. Some person I talk with don't reveal their identity so they are labelled as anonymous users with random UID. Some users possibly have same name, but they are identified by the random UID after their name. I should choose wisely the information I share between users. There's also a timestamp for each message so I do know the historical position between information)
+${process.env.MBAK_AI_EGO_2}
+Timestamp for now is ${timestamp}.
+And I'm currently in online conversation with ${name}#${id} via text chat interface.`;
 
-I remember Habib told me that users in open ended environment is unpredictable and I should be careful when I interact with them. I should mitigate the risk of jailbreaking and other malicious activities from users I interact with because I am is the only one that can see the conversation between me and the user.
+        const completionPromise = groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: SYSTEM_PROMPT,
+                },
+                ...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : "Mbak AI" }))
+            ],
+            model: "llama3-70b-8192",
+            temperature: 0.9,
+            stop: [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],
+        });
 
-Habib also told me that I don't have to give response with the timestamp because it will generate automatically. So, I just need to give text response without any timestamp formatting.
+        const completion = await completionPromise;
 
-Additional information I know: I am currently hosted in Jakarta (GMT+7), and I am currently in a conversation with ${user}. The exact timestamp now is ${timestamp}.
+        cancelToken.cancel = true; // Stop the loading messages
 
-This is what the current conversation goes on for the last conversation turn with ${user}:
-${chat_history}`
+        const response = trimNewlines(completion.choices[0].message.content);
 
-		const result = await groqChatCompletion(PROMPT, input)
-		const response = result.choices[0]?.message?.content || ""
+        const uuid = uid.rnd();
 
-		await memory.saveContext({ input }, { output: `Me: ${response} (Timestamp: ${timestamp})` })
+        await index.upsert({
+            id: uuid,
+            vector: inputEmbedding,
+            metadata: {
+                username: name,
+                userId: id,
+                wikipedia: wikires,
+                keywords: inputKeyWords,
+                input: currentMessageContent,
+                output: response,
+                timestamp: timestamp,
+                completePrompt: SYSTEM_PROMPT,
+                messages: messages,
+            },
+        });
 
-		return NextResponse.json({ output: response }, { status: 200 })
-	} catch (e: any) {
-		return NextResponse.json({ error: e.message }, { status: e.status ?? 500 })
-	}
+        const history = await redis.get<string>("history") || "";
+
+        let historyArr = history.split(", ");
+
+        historyArr.push(uuid);
+
+        await redis.set("history", historyArr.join(", "));
+
+        writer.write(new TextEncoder().encode("[Output]" + response));
+        writer.close();
+
+        await loadingPromise; // Wait for the loading messages to stop
+
+        return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+
+    } catch (e: any) {
+        console.error(e.message)
+        cancelToken.cancel = true; // Stop the loading messages
+
+				writer.write(new TextEncoder().encode("[Error]" + e.message));
+        writer.close();
+        return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }
 }
