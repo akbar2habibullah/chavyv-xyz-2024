@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Redis } from '@upstash/redis';
 import { Index } from "@upstash/vector";
 import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention";
-
+import { Message } from "ai"
 import { WikipediaQueryRun } from "@langchain/community/tools/wikipedia_query_run"
 
 import Groq from "groq-sdk";
@@ -38,6 +38,13 @@ function trimNewlines(input: string): string {
     return input.replace(/^\s+|\s+$/g, '');
 }
 
+function getLastElements(arr: Message[]) {
+    // Calculate the starting index for slicing
+    const startIndex = Math.max(arr.length - 30, 0);
+    // Use slice to get the last 100 elements
+    return arr.slice(startIndex);
+}
+
 export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
@@ -52,7 +59,7 @@ export async function POST(req: NextRequest) {
         const uuid = uid.rnd();
 
         const body = await req.json();
-        const messages = body.messages ?? [];
+        const messages = getLastElements(body.messages) ?? [];
         const name: string = body.user ?? "Anonymous User";
         const id: string = body.user_id ?? uid.rnd();
 
@@ -77,17 +84,17 @@ export async function POST(req: NextRequest) {
         writer.write(new TextEncoder().encode("[Loading]"));
 
         const preresult = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content: process.env.PRE_PROMPT,
-            },
-            {
-              role: "user",
-              content: messages[messages.length - 1].content,
-            },
-          ],
-          model: "mixtral-8x7b-32768",
+            messages: [
+                {
+                    role: "system",
+                    content: process.env.PRE_PROMPT!,
+                },
+                {
+                    role: "user",
+                    content: messages[messages.length - 1].content,
+                },
+            ],
+            model: "mixtral-8x7b-32768",
         })
         const preresponse = preresult.choices[0]?.message?.content || ""
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Redis } from '@upstash/redis';
 import { Index } from "@upstash/vector";
 import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention";
+import { Message } from "ai"
 import Groq from "groq-sdk";
 
 const groq = new Groq({
@@ -62,6 +63,13 @@ function subtractYearAndHalf(dateString: string): string {
 	return formattedDate;
 }
 
+function getLastElements(arr: Message[]) {
+    // Calculate the starting index for slicing
+    const startIndex = Math.max(arr.length - 25, 0);
+    // Use slice to get the last 100 elements
+    return arr.slice(startIndex);
+}
+
 async function getChunkData(id: string, memory: number) {
     const history: string = memory === 1 ? await redis1.get("history") || "" : await redis2.get("history") || "";
 
@@ -93,7 +101,7 @@ export async function POST(req: NextRequest) {
         const uid = new ShortUniqueId({ length: 10 });
 
         const body = await req.json();
-        const messages = body.messages ?? [];
+        const messages = getLastElements(body.messages) ?? [];
         const name: string = body.user ?? "Anonymous User";
         const id: string = body.user_id ?? uid.rnd();
 
