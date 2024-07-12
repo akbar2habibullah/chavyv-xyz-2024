@@ -181,7 +181,7 @@ And I'm currently in online conversation with ${name}#${id} via text chat interf
                 output: response,
                 timestamp: timestamp,
                 completePrompt: SYSTEM_PROMPT,
-                messages: messages,
+                messages: messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content,  name: data.role === 'user' ? name : "Mbak AI" })),
             },
         });
 
@@ -193,7 +193,7 @@ And I'm currently in online conversation with ${name}#${id} via text chat interf
 
         await redis.set("history", historyArr.join(", "));
 
-        writer.write(new TextEncoder().encode("[Output]" + response));
+        writer.write(new TextEncoder().encode("[Output]" + response + "[Output]" + uuid));
         writer.close();
 
         await loadingPromise; // Wait for the loading messages to stop

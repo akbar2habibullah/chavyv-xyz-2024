@@ -97,9 +97,9 @@ export async function POST(req: NextRequest) {
         const name: string = body.user ?? "Anonymous User";
         const id: string = body.user_id ?? uid.rnd();
 
-				const uuid = uid.rnd();
+		const uuid = uid.rnd();
 
-				messages[messages.length - 1].id = uuid
+		messages[messages.length - 1].id = uuid
 
         if (name !== process.env.USER_NAME || id !== process.env.USER_ID) {
             writer.close();
@@ -208,7 +208,7 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
                 output: response,
                 timestamp: timestamp,
                 completePrompt: SYSTEM_PROMPT,
-                messages: messages,
+                messages: messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT })),
             },
         });
 
@@ -220,7 +220,7 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
 
         await redis2.set("history", historyArr.join(", "));
 
-        writer.write(new TextEncoder().encode("[Output]" + response));
+        writer.write(new TextEncoder().encode("[Output]" + response + "[Output]" + uuid));
         writer.close();
 
         await loadingPromise; // Wait for the loading messages to stop

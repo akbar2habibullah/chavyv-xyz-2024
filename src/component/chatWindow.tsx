@@ -34,7 +34,9 @@ export function ChatWindow(props: { endpoint: string; placeholder?: string; name
 		console.log(messages)
 		if (bufferedMessages.length > 0 && bufferedMessages[bufferedMessages.length - 1].content.includes("[Output]")) {
 			const outputMessage = bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1]
-			const newMessages = trimMessage([...messages, { id: messages.length.toString(), content: outputMessage, role: "assistant" }])
+			const idMessage = bufferedMessages[bufferedMessages.length - 1].content.split("[Output]")[1]
+			messages[messages.length - 1].id = `${idMessage}-1`
+			const newMessages = trimMessage([...messages, { id: `${idMessage}-2`, content: outputMessage, role: "assistant" }])
 			setMessages(newMessages)
 			setBufferedMessages([])
 			setLoading(false)
