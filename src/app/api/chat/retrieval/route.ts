@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
 
         const retrieval1 = await index1.query({
             vector: inputEmbedding,
-            topK: 5,
+            topK: 3,
             includeMetadata: true,
         });
 
