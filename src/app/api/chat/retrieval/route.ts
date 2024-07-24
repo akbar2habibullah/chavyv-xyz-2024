@@ -65,7 +65,7 @@ function subtractYearAndHalf(dateString: string): string {
 
 function getLastElements(arr: Message[]) {
     // Calculate the starting index for slicing
-    const startIndex = Math.max(arr.length - 25, 0);
+    const startIndex = Math.max(arr.length - 50, 0);
     // Use slice to get the last 100 elements
     return arr.slice(startIndex);
 }
@@ -142,20 +142,20 @@ export async function POST(req: NextRequest) {
 
         const loadingPromise = sendLoadingMessages();
 
-        const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, { systemPrompt: process.env.AGENT_EGO, threshold: 0.15 });
+        const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent);
         const inputKeyWordsString = inputKeyWords.join(", ");
 
         const inputEmbedding = await getEmbedding(inputKeyWordsString);
 
         const retrieval1 = await index1.query({
             vector: inputEmbedding,
-            topK: 3,
+            topK: 6,
             includeMetadata: true,
         });
 
         const retrieval2 = await index2.query({
             vector: inputEmbedding,
-            topK: 1,
+            topK: 3,
             includeMetadata: true,
         });
 
@@ -188,20 +188,29 @@ ${memories}
 Timestamp for now is ${timestamp}.
 And I'm currently in online conversation with ${name} via text chat interface.`;
 
-        const completionPromise = groq.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: SYSTEM_PROMPT,
+        const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "model": "meta-llama/llama-3.1-70b-instruct",
+                "messages":  [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    ...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
+                ],
+                "provider": {
+                    "order": [
+                        "DeepInfra"
+                    ]
                 },
-                ...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
-            ],
-            model: "gemma2-9b-it",
-            temperature: 0.9,
-            stop: [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],
+                "temperature": 0.95,
+                "stop": [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`]
+            })
         });
 
-        const completion = await completionPromise;
+        const completion = await completionResponse.json()
 
         cancelToken.cancel = true; // Stop the loading messages
 
@@ -239,7 +248,7 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
         console.error(e.message)
         cancelToken.cancel = true; // Stop the loading messages
 
-				writer.write(new TextEncoder().encode("[Error]" + e.message));
+		writer.write(new TextEncoder().encode("[Error]" + e.message));
         writer.close();
         return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }

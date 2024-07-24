@@ -99,7 +99,7 @@ export async function getEmbedding(text: string) {
 }
 
 // Function to find the most influential tokens for a sentence
-export async function findInfluentialTokensForSentence(sentence: string, options: { systemPrompt?: string, threshold: number} ) {
+export async function findInfluentialTokensForSentence(sentence: string) {
   const chatCompletion = await groq.chat.completions.create({
     "messages": [
       {
@@ -124,5 +124,7 @@ export async function findInfluentialTokensForSentence(sentence: string, options
 
   const { influential_words } = JSON.parse(chatCompletion.choices[0].message.content);
 
-  return influential_words;
+  console.log(influential_words)
+
+  return influential_words.length > 0 ? influential_words : sentence.split(" ").length < 4 ? sentence.split(" ") : [] ;
 }
