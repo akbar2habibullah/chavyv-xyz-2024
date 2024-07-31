@@ -225,7 +225,7 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
                 output: response,
                 timestamp: timestamp,
                 completePrompt: SYSTEM_PROMPT,
-                messages: messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT })),
+                messages: messages.map((data: any) => ({ id: data.id })),
             },
         });
 
