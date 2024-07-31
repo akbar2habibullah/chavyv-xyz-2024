@@ -113,7 +113,6 @@ export async function findInfluentialTokensForSentence(sentence: string) {
     ],
     "model": "llama3-70b-8192",
     "temperature": 0.9,
-    "max_tokens": 30,
     "top_p": 1,
     "stream": false,
     "response_format": {
