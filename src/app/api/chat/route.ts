@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
         const loadingPromise = sendLoadingMessages();
 
-        const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent, { systemPrompt: process.env.MBAK_AI_EGO_1, threshold: 0.15 });
+        const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent);
         const inputKeyWordsString = inputKeyWords.join(", ");
 
         const inputEmbedding = await getEmbedding(inputKeyWordsString);
