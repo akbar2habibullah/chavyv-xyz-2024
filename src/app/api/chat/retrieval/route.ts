@@ -162,25 +162,33 @@ export async function POST(req: NextRequest) {
         let memories = ``;
 
         for (let i = 0; i < retrieval1.length; i++) {
-            const responseRange = await getChunkData(retrieval1[i].id as unknown as string, 1);
+            try {
+                const responseRange = await getChunkData(retrieval1[i].id as unknown as string, 1);
 
-            const responseParsed = responseRange.map(
-                (data) => `${name}: ${data?.metadata?.input}\n
-                Me: ${data?.metadata?.output}\n`
-            ).join();
+                const responseParsed = responseRange.map(
+                    (data) => `${name}: ${data?.metadata?.input}\n
+                    Me: ${data?.metadata?.output}\n`
+                ).join();
 
-            memories += `Conversation I remember from ${subtractYearAndHalf(responseRange[0]?.metadata?.timestamp as unknown as string)}:\n${responseParsed}\n\n`;
+                memories += `Conversation I remember from ${subtractYearAndHalf(responseRange[0]?.metadata?.timestamp as unknown as string)}:\n${responseParsed}\n\n`;
+            } catch (err) {
+
+            }
         }
 
         for (let i = 0; i < retrieval2.length; i++) {
-            const responseRange = await getChunkData(retrieval2[i].id as unknown as string, 2);
+            try {
+                const responseRange = await getChunkData(retrieval2[i].id as unknown as string, 2);
 
-            const responseParsed = responseRange.map(
-                (data) => `${name}: ${data?.metadata?.input}\n
-                Me: ${data?.metadata?.output}\n`
-            ).join();
+                const responseParsed = responseRange.map(
+                    (data) => `${name}: ${data?.metadata?.input}\n
+                    Me: ${data?.metadata?.output}\n`
+                ).join();
 
-            memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`;
+                memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`;
+            } catch (err) {
+
+            }
         }
 
         const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
