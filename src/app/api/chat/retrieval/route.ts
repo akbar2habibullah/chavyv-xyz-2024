@@ -65,7 +65,7 @@ function subtractYearAndHalf(dateString: string): string {
 
 function getLastElements(arr: Message[]) {
     // Calculate the starting index for slicing
-    const startIndex = Math.max(arr.length - 50, 0);
+    const startIndex = Math.max(arr.length - 25, 0);
     // Use slice to get the last 100 elements
     return arr.slice(startIndex);
 }
@@ -149,13 +149,13 @@ export async function POST(req: NextRequest) {
 
         const retrieval1 = await index1.query({
             vector: inputEmbedding,
-            topK: 6,
+            topK: 2,
             includeMetadata: true,
         });
 
         const retrieval2 = await index2.query({
             vector: inputEmbedding,
-            topK: 3,
+            topK: 1,
             includeMetadata: true,
         });
 
@@ -203,17 +203,17 @@ And I'm currently in online conversation with ${name} via text chat interface.`;
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "model": "meta-llama/llama-3.1-70b-instruct",
+                "model": "google/gemma-2-27b-it",
                 "messages":  [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     ...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
                 ],
                 "provider": {
                     "order": [
-                        "DeepInfra"
+                        "Together"
                     ]
                 },
-                "temperature": 0.95,
+                "temperature": 0.9,
                 "stop": [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`]
             })
         });
