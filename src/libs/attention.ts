@@ -1,16 +1,11 @@
-import cosineSimilarity from 'compute-cosine-similarity';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+
+import { groq } from './groq';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004"});
 
 import OpenAI from "openai"
-import Groq from "groq-sdk"
-
-const groq = new Groq({
-	apiKey: process.env.GROQ_API_KEY,
-})
-
 
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
