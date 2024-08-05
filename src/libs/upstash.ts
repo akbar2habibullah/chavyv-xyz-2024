@@ -16,7 +16,7 @@ export const vector = new Index({
   token: process.env.VECTOR_TOKEN,
 });
 
-export async function getChatHistory(length?: number) {
+export async function getChatHistoryIds(length?: number): Promise<string[]> {
   const history = await redis.get<string[]>("chatHistory") || [];
 
   if (length) {
@@ -24,6 +24,14 @@ export async function getChatHistory(length?: number) {
   }
 
   return history;
+}
+
+export async function getChatHistory(length: number = 25) {
+  const historyIds: string[] = await getChatHistoryIds(length)
+
+  const history = await vector.fetch(historyIds, { includeMetadata: true });
+
+  return history
 }
 
 export async function addChatHistory(uuid: string) {

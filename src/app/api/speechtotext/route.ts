@@ -1,10 +1,7 @@
-import Groq from "groq-sdk";
+
+import { speechToText } from "@/libs/speechtotext"
 
 export const runtime = "edge";
-
-const groq = new Groq({
-	apiKey: process.env.GROQ_API_KEY,
-})
 
 export async function POST(req: Request) {
   const formData = await req.formData();
@@ -17,14 +14,7 @@ export async function POST(req: Request) {
     throw new Error("Unauthorized")
   }
 
-  const transcription = await groq.audio.transcriptions.create({
-    file,
-    model: "whisper-large-v3",
-    prompt: "Specify context or spelling", // Optional
-    response_format: "json", // Optional
-    language: "id", // Optional
-    temperature: 0.0, // Optional
-  });
+  const transcription = await speechToText(file)
 
   return Response.json(transcription.text);
 }

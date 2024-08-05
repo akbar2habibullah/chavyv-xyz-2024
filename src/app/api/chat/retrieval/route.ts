@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from '@upstash/redis';
 import { Index } from "@upstash/vector";
-import { getEmbedding, findInfluentialTokensForSentence } from "@/libs/attention";
+import { findInfluentialTokens } from "@/libs/attention";
+import { getEmbedding } from "@/libs/googleAI";
 import { Message } from "ai"
 import Groq from "groq-sdk";
 
@@ -142,7 +143,7 @@ export async function POST(req: NextRequest) {
 
         const loadingPromise = sendLoadingMessages();
 
-        const inputKeyWords = await findInfluentialTokensForSentence(currentMessageContent);
+        const inputKeyWords = await findInfluentialTokens(currentMessageContent);
         const inputKeyWordsString = inputKeyWords.join(", ");
 
         const inputEmbedding = await getEmbedding(inputKeyWordsString);
