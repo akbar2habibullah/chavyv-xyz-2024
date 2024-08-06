@@ -1,4 +1,4 @@
-export async function dateNow() {
+export function dateNow() {
   let options: Intl.DateTimeFormatOptions = {
     timeZone: "Asia/Jakarta",
     year: "numeric",

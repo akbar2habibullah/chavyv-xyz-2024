@@ -1,5 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { Index } from "@upstash/vector";
+import { getEmbedding } from './googleAI'
+import { Message } from 'ai'
 
 export const redis = new Redis({
   url: process.env.REDIS_MASTER_LINK,
@@ -35,14 +37,10 @@ export async function getChatHistory(length: number = 25) {
 }
 
 export async function addChatHistory(uuid: string) {
-  const history = await redis.get<string[]>("chatHistory") || [];
-
-  history.push(uuid)
-
-  return await redis.set("chatHistory", history)
+  return await redis.rpush("chatHistory", uuid)
 }
 
-export async function getChunkHistory(uuid: string, lengthBefore: number = - 1, lengthAfter: number = 2) {
+export async function getChunkHistory({ uuid, lengthBefore = - 1, lengthAfter = 2 }: {uuid: string, lengthBefore: number, lengthAfter: number}) {
   const history = await redis.get<string[]>("chatHistory") || [];
 
     const idx = history.indexOf(uuid);
@@ -61,9 +59,51 @@ export async function getChunkHistory(uuid: string, lengthBefore: number = - 1, 
 }
 
 export async function addChatHistoryMbakAI(uuid: string) {
-  const history = await redis.get<string[]>("chatHistoryMbakAI") || [];
+  return await redis.rpush("chatHistoryMbakAI", uuid)
+}
 
-  history.push(uuid)
+interface MetadataMbakAI { 
+  messages: Message[],
+  name: string,
+  systemPrompt: string,
+  timestamp: string,
+  input: string,
+  output: string,
+  keywords: string[],
+  wikipedia: string,
+  userId: string,
+}
 
-  return await redis.set("chatHistoryMbakAI", history)
+export async function getRetrievalMbakAI(string: string, length: number = 5) {
+  const vector = await getEmbedding(string)
+
+  const retrieval = await vectorMbakAI.query({
+    vector,
+    topK: length,
+  });
+
+  const result: MetadataMbakAI[] = await redis.mget(...retrieval.map((data) => `chat-${data.id}`))
+
+  return { result, vector }
+}
+
+export async function addVectorDBEntryMbakAI({id, vector, metadata: { userId, messages, name, systemPrompt, timestamp, input, output, keywords, wikipedia }}: { id: string, vector: number[], metadata: MetadataMbakAI}) {
+
+  await vectorMbakAI.upsert({
+    id,
+    vector,
+  });
+
+  await redis.set(`chat-${id}`, {
+    id,
+    username: name,
+    userId: userId,
+    wikipedia,
+    keywords,
+    input,
+    output,
+    timestamp,
+    systemPrompt,
+    messages,
+  })
 }
