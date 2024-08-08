@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { trimNewlines, wrapMemoryMbakAI, wrapSystemPromptMbakAI } from "@/utils/string";
+import { wrapMemoryMbakAI, wrapSystemPromptMbakAI } from "@/utils/string";
 import { getUUID } from "@/utils/uuid"
 import { dateNow } from "@/utils/date"
 import { groqChatCompletion } from "@/utils/groq"
