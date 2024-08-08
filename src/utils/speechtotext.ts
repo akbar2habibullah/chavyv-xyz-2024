@@ -2,7 +2,7 @@ import { groq } from "./groq";
 import { appendLog } from "./log"
 import { trimStringToMaxLength } from "./string"
 
-export async function speechToText(file: File, language: string = 'id', prompt: string = 'Specify context or spelling') {
+export async function speechToText(file: File, language: string = 'id', prompt: string = 'Specify context or spelling'): Promise<string> {
 
   const transcription = await groq.audio.transcriptions.create({
     file,
@@ -15,5 +15,5 @@ export async function speechToText(file: File, language: string = 'id', prompt: 
   
   await appendLog(`speechToText success with response: ${trimStringToMaxLength(transcription.text)}`)
 
-  return transcription;
+  return transcription.text;
 }

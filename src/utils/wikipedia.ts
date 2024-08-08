@@ -3,23 +3,23 @@ import { findInfluentialTokens } from "./attention"
 import { appendLog } from "./log"
 import { trimStringToMaxLength } from "./string"
 
-export async function queryWikipedia(input: string) {
-  const keywords = await findInfluentialTokens(input)
+export async function queryWikipedia(input: string): Promise<string> {
+    const keywords = await findInfluentialTokens(input)
 
-  let wiki = ""
+    let wiki = ""
 
-  try {
-      const tool = new WikipediaQueryRun({
-          topKResults: 2,
-          maxDocContentLength: 1000,
-      })
+    try {
+        const tool = new WikipediaQueryRun({
+            topKResults: 2,
+            maxDocContentLength: 1000,
+        })
 
-      wiki = await tool.invoke(keywords.join(" "))
+        wiki = await tool.invoke(keywords.join(" "))
 
-      await appendLog(`queryWikipedia success with retrieval: ${trimStringToMaxLength(wiki)}`)
-  } catch(e: any) {
-      console.error(e.message)
-  }
+        await appendLog(`queryWikipedia success with retrieval: ${trimStringToMaxLength(wiki)}`)
+    } catch(e: any) {
+        console.error(e.message)
+    }
 
-  return wiki
+    return wiki
 }

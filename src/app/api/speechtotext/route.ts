@@ -17,7 +17,7 @@ async function handler(req: Request) {
 
   const transcription = await speechToText(file)
 
-  return Response.json(transcription.text);
+  return Response.json({ transcription }, { status: 200 });
 }
 
 export const POST = errorHandler(handler);

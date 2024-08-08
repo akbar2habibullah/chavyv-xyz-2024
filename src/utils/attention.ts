@@ -2,7 +2,7 @@ import { groq } from './groq';
 import { appendLog } from './log'
 
 // Function to find the most influential tokens for a sentence
-export async function findInfluentialTokens(sentence: string) {
+export async function findInfluentialTokens(sentence: string): Promise<string[]> {
   const chatCompletion = await groq.chat.completions.create({
     "messages": [
       {

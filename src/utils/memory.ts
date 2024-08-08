@@ -1,7 +1,7 @@
 import { Message } from "ai"
 import { dateNow } from "./date"
 import { groqChatCompletion } from "./groq"
-import { trimNewlines, wrapMemoryMbakAI, wrapSystemPromptMbakAI } from "./string"
+import { wrapMemoryMbakAI, wrapSystemPromptMbakAI } from "./string"
 import { getMemoryMbakAI, MetadataMbakAI } from "./upstash"
 import { getUUID } from "./uuid"
 import { findInfluentialTokens } from "./attention"
@@ -14,7 +14,7 @@ export async function memoryAbstractionMbakAI(input: string, messages: Message[]
 
   let result
   let vector: number[] = [] 
-  let keywords = []
+  let keywords: string[] = []
 
   if (recall === "") {
     const retrieval = await getMemoryMbakAI(input)
@@ -59,7 +59,7 @@ export async function memoryAbstractionMbakAI(input: string, messages: Message[]
     name,
     userId,
     timestamp,
-    recall: trimNewlines(completion),
+    recall: completion,
     memory: [...memory, ...result],
     system: systemPrompt
   })

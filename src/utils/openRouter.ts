@@ -1,6 +1,6 @@
 import { Message } from "ai"
 import { appendLog } from "./log"
-import { trimStringToMaxLength } from "./string"
+import { trimNewlines, trimStringToMaxLength } from "./string"
 
 interface OpenRouterChatCompletion { 
   messages: Message[], 
@@ -12,7 +12,7 @@ interface OpenRouterChatCompletion {
   provider?: string
 }
 
-export async function openRouterChatCompletion({ messages, model, stop, temperature = 0.9, name = 'Random User', agent = 'Mbak AI', provider }: OpenRouterChatCompletion) {
+export async function openRouterChatCompletion({ messages, model, stop, temperature = 0.9, provider }: OpenRouterChatCompletion): Promise<string> {
 	const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -21,16 +21,14 @@ export async function openRouterChatCompletion({ messages, model, stop, temperat
     },
     body: JSON.stringify({
         "model": model,
-        "messages": messages.map(
-          (message) => ({ role: message.role, content: message.content, name: message.role === 'user' ? name : agent })
-        ),
+        "messages": messages,
         "provider": provider ? {
           "order": [
               provider
           ]
         } : null,
         "temperature": temperature,
-        "stop": stop ? stop : [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],
+        "stop": stop ? stop : [`\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],
     })
   });
 
@@ -39,5 +37,5 @@ export async function openRouterChatCompletion({ messages, model, stop, temperat
   
   await appendLog(`openRouterChatCompletion success with response: ${trimStringToMaxLength(result)}`)
 
-  return result;
+  return trimNewlines(result);
 }

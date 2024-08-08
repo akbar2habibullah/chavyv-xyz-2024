@@ -1,5 +1,5 @@
 import { dateNow } from "./date"
-import { MetadataMbakAI } from "./upstash"
+import { MetadataChat, MetadataMbakAI } from "./upstash"
 import { getUUID } from "./uuid"
 
 export function trimNewlines(input: string): string {
@@ -11,6 +11,28 @@ export function trimStringToMaxLength(input: string, maxLength = 100): string {
       return input;
   }
   return input.substring(0, maxLength) + "...";
+}
+
+export function wrapMemory(memory: MetadataChat[], name: string): string {
+  let memories = ``;
+
+  for (let i = 0; i < memory.length; i++) {
+    const responseParsed = `${name}: ${memory[i]?.input}\n
+Me: ${memory[i]?.output}\n`
+
+    memories += `Conversation I remember from ${memory[i]?.timestamp} with ${name}:\n${responseParsed}\n\n`;
+  }
+
+  return memories
+}
+
+export function wrapSystemPrompt({ memories = "There's no memory yet", timestamp = dateNow(), name = "Anonymous User" }): string {
+  const systemPrompt = `${process.env.AGENT_EGO}
+  ${memories}
+  Timestamp for now is ${timestamp}.
+  And I'm currently in online conversation with ${name} via text chat interface.`;
+
+  return systemPrompt
 }
 
 export function wrapMemoryMbakAI(memory: MetadataMbakAI[]): string {

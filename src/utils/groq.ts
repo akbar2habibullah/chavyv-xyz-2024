@@ -2,7 +2,7 @@
 import { Message } from "ai"
 import Groq from "groq-sdk";
 import { appendLog } from "./log"
-import { trimStringToMaxLength } from "./string"
+import { trimNewlines, trimStringToMaxLength } from "./string"
 
 export const groq = new Groq({
 	apiKey: process.env.GROQ_API_KEY,
@@ -17,7 +17,7 @@ interface GroqChatCompletion {
   agent?: string
 }
 
-export async function groqChatCompletion({ messages, model, stop = [`\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`], temperature = 0.9, name = 'Random User', agent = 'Mbak AI' }: GroqChatCompletion) {
+export async function groqChatCompletion({ messages, model, stop = [`\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`], temperature = 0.9, name = 'Random User', agent = 'Mbak AI' }: GroqChatCompletion): Promise<string> {
 	const response = await groq.chat.completions.create({
 		messages: messages.map(
       (message) => ({ role: message.role, content: message.content, name: message.role === 'user' ? name : agent })
@@ -31,5 +31,5 @@ export async function groqChatCompletion({ messages, model, stop = [`\n\n\n`, `\
 
   await appendLog(`groqChatCompletion success with response: ${trimStringToMaxLength(result)}`)
 
-  return result;
+  return trimNewlines(result);
 }

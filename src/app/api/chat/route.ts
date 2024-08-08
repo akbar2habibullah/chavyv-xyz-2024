@@ -6,12 +6,13 @@ import { groqChatCompletion } from "@/utils/groq"
 import { addChatHistoryMbakAI, addVectorDBEntryMbakAI, getMemoryMbakAI } from "@/utils/upstash"
 import { queryWikipedia } from "@/utils/wikipedia"
 import errorHandler from "@/utils/error"
+import { Message } from "ai"
 
 export const runtime = "edge";
 
 async function handler(req: NextRequest) {
     const body = await req.json();
-    const messages = body.messages.slice(-25) ?? [];
+    const messages: Message[] = body.messages.slice(-25) ?? [];
     const name: string = body.user ?? "Anonymous User";
     const userId: string = body.user_id ?? getUUID();
     const msgId = getUUID()
@@ -36,18 +37,17 @@ async function handler(req: NextRequest) {
         timestamp
     })
 
-    const completion = await groqChatCompletion({
+    const response = await groqChatCompletion({
         messages: [
-            {
+            {   
+                id: '0',
                 role: "system",
                 content: systemPrompt,
             },
-            ...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : "Mbak AI" }))
+            ...messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : "Mbak AI" }))
         ],
         model: "llama3-70b-8192",
     });
-
-    const response = trimNewlines(completion);
 
     await addVectorDBEntryMbakAI({
         id: msgId,
