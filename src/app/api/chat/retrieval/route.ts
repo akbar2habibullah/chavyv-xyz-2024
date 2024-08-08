@@ -4,11 +4,6 @@ import { Index } from "@upstash/vector";
 import { findInfluentialTokens } from "@/libs/attention";
 import { getEmbedding } from "@/libs/googleAI";
 import { Message } from "ai"
-import Groq from "groq-sdk";
-
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY,
-});
 
 const redis1 = new Redis({
     url: process.env.REDIS_LINK!,
@@ -31,45 +26,10 @@ const index2 = new Index({
 });
 
 import ShortUniqueId from "short-unique-id";
-
-async function* fetchLoadingMessages(cancelToken: { cancel: boolean }): AsyncGenerator<Uint8Array, void, unknown> {
-    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    for (let i = 0; i < 10; ++i) {
-        if (cancelToken.cancel) break;
-        await sleep(3000); // Sleep for 3 seconds
-        if (cancelToken.cancel) break;
-        yield new TextEncoder().encode("[Loading]");
-    }
-}
-
-function trimNewlines(input: string): string {
-    return input.replace(/^\s+|\s+$/g, '');
-}
-
-function subtractYearAndHalf(dateString: string): string {
-	// Extract the date and time part from the input string
-	const dateTimePart = dateString.split(', ')[1] + ', ' + dateString.split(', ')[2];
-
-	// Parse the extracted date and time part to a Date object
-	const date = new Date(dateTimePart);
-
-	// Subtract a year and a half (15 months) from the date
-	date.setMonth(date.getMonth() - 15);
-
-	// Format the date back to the original format
-	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-	const formattedDate = `${days[date.getDay()]}, ${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}, ${date.toLocaleTimeString('en-US')}`;
-
-	return formattedDate;
-}
-
-function getLastElements(arr: Message[]) {
-    // Calculate the starting index for slicing
-    const startIndex = Math.max(arr.length - 25, 0);
-    // Use slice to get the last 100 elements
-    return arr.slice(startIndex);
-}
+import { getUUID } from "@/libs/uuid"
+import { dateNow } from "@/libs/date"
+import { trimNewlines } from "@/libs/string"
+import errorHandler from "@/libs/error"
 
 async function getChunkData(id: string, memory: number) {
     const history: string = memory === 1 ? await redis1.get("history") || "" : await redis2.get("history") || "";
@@ -92,173 +52,127 @@ async function getChunkData(id: string, memory: number) {
 
 export const runtime = "edge";
 
-export async function POST(req: NextRequest) {
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
+async function handler(req: NextRequest) {
 
-    const cancelToken = { cancel: false };
+    const body = await req.json();
+    const messages = body.messages?.slice(-25) ?? [];
+    const name: string = body.user ?? "Anonymous User";
+    const id: string = body.user_id ?? getUUID();
 
-    try {
-        const uid = new ShortUniqueId({ length: 10 });
+    const uuid = getUUID();
 
-        const body = await req.json();
-        const messages = getLastElements(body.messages) ?? [];
-        const name: string = body.user ?? "Anonymous User";
-        const id: string = body.user_id ?? uid.rnd();
+    messages[messages.length - 1].id = uuid
 
-		const uuid = uid.rnd();
+    if (name !== process.env.USER_NAME || id !== process.env.USER_ID) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-		messages[messages.length - 1].id = uuid
+    const currentMessageContent = messages[messages.length - 1].content;
 
-        if (name !== process.env.USER_NAME || id !== process.env.USER_ID) {
-            writer.close();
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const timestamp = dateNow()
+
+    const inputKeyWords = await findInfluentialTokens(currentMessageContent);
+    const inputKeyWordsString = inputKeyWords.join(", ");
+
+    const inputEmbedding = await getEmbedding(inputKeyWordsString);
+
+    const retrieval1 = await index1.query({
+        vector: inputEmbedding,
+        topK: 2,
+        includeMetadata: true,
+    });
+
+    const retrieval2 = await index2.query({
+        vector: inputEmbedding,
+        topK: 1,
+        includeMetadata: true,
+    });
+
+    let memories = ``;
+
+    for (let i = 0; i < retrieval1.length; i++) {
+        try {
+            const responseRange = await getChunkData(retrieval1[i].id as unknown as string, 1);
+
+            const responseParsed = responseRange.map(
+                (data) => `${name}: ${data?.metadata?.input}\n
+                Me: ${data?.metadata?.output}\n`
+            ).join();
+
+            memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp as unknown as string}:\n${responseParsed}\n\n`;
+        } catch (err) {
+
         }
+    }
 
-        const currentMessageContent = messages[messages.length - 1].content;
+    for (let i = 0; i < retrieval2.length; i++) {
+        try {
+            const responseRange = await getChunkData(retrieval2[i].id as unknown as string, 2);
 
-        let options: Intl.DateTimeFormatOptions = {
-            timeZone: "Asia/Jakarta",
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric",
-            weekday: "long",
-        };
-        let dateFormatter = new Intl.DateTimeFormat([], options);
+            const responseParsed = responseRange.map(
+                (data) => `${name}: ${data?.metadata?.input}\n
+                Me: ${data?.metadata?.output}\n`
+            ).join();
 
-        const timestamp = dateFormatter.format(new Date());
+            memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`;
+        } catch (err) {
 
-        writer.write(new TextEncoder().encode("[Loading]"));
-
-        const loadingMessages = fetchLoadingMessages(cancelToken);
-
-        const sendLoadingMessages = async () => {
-            for await (const message of loadingMessages) {
-                writer.write(message);
-            }
-        };
-
-        const loadingPromise = sendLoadingMessages();
-
-        const inputKeyWords = await findInfluentialTokens(currentMessageContent);
-        const inputKeyWordsString = inputKeyWords.join(", ");
-
-        const inputEmbedding = await getEmbedding(inputKeyWordsString);
-
-        const retrieval1 = await index1.query({
-            vector: inputEmbedding,
-            topK: 2,
-            includeMetadata: true,
-        });
-
-        const retrieval2 = await index2.query({
-            vector: inputEmbedding,
-            topK: 1,
-            includeMetadata: true,
-        });
-
-        let memories = ``;
-
-        for (let i = 0; i < retrieval1.length; i++) {
-            try {
-                const responseRange = await getChunkData(retrieval1[i].id as unknown as string, 1);
-
-                const responseParsed = responseRange.map(
-                    (data) => `${name}: ${data?.metadata?.input}\n
-                    Me: ${data?.metadata?.output}\n`
-                ).join();
-
-                memories += `Conversation I remember from ${subtractYearAndHalf(responseRange[0]?.metadata?.timestamp as unknown as string)}:\n${responseParsed}\n\n`;
-            } catch (err) {
-
-            }
         }
+    }
 
-        for (let i = 0; i < retrieval2.length; i++) {
-            try {
-                const responseRange = await getChunkData(retrieval2[i].id as unknown as string, 2);
-
-                const responseParsed = responseRange.map(
-                    (data) => `${name}: ${data?.metadata?.input}\n
-                    Me: ${data?.metadata?.output}\n`
-                ).join();
-
-                memories += `Conversation I remember from ${responseRange[0]?.metadata?.timestamp}:\n${responseParsed}\n\n`;
-            } catch (err) {
-
-            }
-        }
-
-        const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
+    const SYSTEM_PROMPT = `${process.env.AGENT_EGO}
 ${memories}
 Timestamp for now is ${timestamp}.
 And I'm currently in online conversation with ${name} via text chat interface.`;
 
-        const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
-                "Content-Type": "application/json"
+    const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            "model": "google/gemma-2-27b-it",
+            "messages":  [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                ...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
+            ],
+            "provider": {
+                "order": [
+                    "Together"
+                ]
             },
-            body: JSON.stringify({
-                "model": "google/gemma-2-27b-it",
-                "messages":  [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    ...messages.map((data: any) => ({ role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
-                ],
-                "provider": {
-                    "order": [
-                        "Together"
-                    ]
-                },
-                "temperature": 0.9,
-                "stop": [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`]
-            })
-        });
+            "temperature": 0.9,
+            "stop": [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`]
+        })
+    });
 
-        const completion = await completionResponse.json()
+    const completion = await completionResponse.json()
 
-        cancelToken.cancel = true; // Stop the loading messages
+    const response = trimNewlines(completion.choices[0].message.content);
 
-        const response = trimNewlines(completion.choices[0].message.content);
+    await index2.upsert({
+        id: uuid,
+        vector: inputEmbedding,
+        metadata: {
+            keywords: inputKeyWords,
+            input: currentMessageContent,
+            output: response,
+            timestamp: timestamp,
+            completePrompt: SYSTEM_PROMPT,
+            messages: messages.map((data: any) => ({ id: data.id })),
+        },
+    });
 
-        await index2.upsert({
-            id: uuid,
-            vector: inputEmbedding,
-            metadata: {
-                keywords: inputKeyWords,
-                input: currentMessageContent,
-                output: response,
-                timestamp: timestamp,
-                completePrompt: SYSTEM_PROMPT,
-                messages: messages.map((data: any) => ({ id: data.id })),
-            },
-        });
+    const history = await redis2.get<string>("history") || "";
 
-        const history = await redis2.get<string>("history") || "";
+    let historyArr = history.split(", ");
 
-        let historyArr = history.split(", ");
+    historyArr.push(uuid);
 
-        historyArr.push(uuid);
+    await redis2.set("history", historyArr.join(", "));
 
-        await redis2.set("history", historyArr.join(", "));
-
-        writer.write(new TextEncoder().encode("[Output]" + response + "[Output]" + uuid));
-        writer.close();
-
-        await loadingPromise; // Wait for the loading messages to stop
-
-        return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-
-    } catch (e: any) {
-        console.error(e.message)
-        cancelToken.cancel = true; // Stop the loading messages
-
-		writer.write(new TextEncoder().encode("[Error]" + e.message));
-        writer.close();
-        return new Response(readable, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-    }
+    return NextResponse.json({ text: response }, { status: 200 })
 }
+
+export const POST = errorHandler(handler);

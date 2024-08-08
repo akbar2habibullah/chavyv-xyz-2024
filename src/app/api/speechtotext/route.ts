@@ -1,9 +1,10 @@
 
+import errorHandler from "@/libs/error"
 import { speechToText } from "@/libs/speechtotext"
 
 export const runtime = "edge";
 
-export async function POST(req: Request) {
+async function handler(req: Request) {
   const formData = await req.formData();
   const file = formData.get("file") as File;
   const name = formData.get("name") as string;
@@ -18,3 +19,5 @@ export async function POST(req: Request) {
 
   return Response.json(transcription.text);
 }
+
+export const POST = errorHandler(handler);

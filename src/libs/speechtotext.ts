@@ -1,4 +1,6 @@
 import { groq } from "./groq";
+import { appendLog } from "./log"
+import { trimStringToMaxLength } from "./string"
 
 export async function speechToText(file: File, language: string = 'id', prompt: string = 'Specify context or spelling') {
 
@@ -9,6 +11,9 @@ export async function speechToText(file: File, language: string = 'id', prompt: 
     response_format: "json",
     language,
   });
+
+  
+  await appendLog(`speechToText success with response: ${trimStringToMaxLength(transcription.text)}`)
 
   return transcription;
 }

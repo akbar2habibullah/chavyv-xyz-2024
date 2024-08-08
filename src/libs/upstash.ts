@@ -1,12 +1,23 @@
 import { Redis } from '@upstash/redis';
 import { Index } from "@upstash/vector";
-import { getEmbedding } from './googleAI'
+import { Client } from "@upstash/qstash";
 import { Message } from 'ai'
+
+import { getEmbedding } from './googleAI'
+import { findInfluentialTokens } from './attention'
+import { appendLog } from './log'
+
+const queue = new Client({ token: process.env.QSTASH_TOKEN! });
 
 export const redis = new Redis({
   url: process.env.REDIS_MASTER_LINK,
   token: process.env.REDIS_MASTER_TOKEN,
 });
+
+export const redisMbakAI = new Redis({
+  url: process.env.REDIS_MBKAI_LINK,
+  token: process.env.REDIS_MBKAI_TOKEN,
+})
 
 export const vectorMbakAI = new Index({
   url: process.env.VECTOR_LINK_MBAK_AI,
@@ -37,7 +48,9 @@ export async function getChatHistory(length: number = 25) {
 }
 
 export async function addChatHistory(uuid: string) {
-  return await redis.rpush("chatHistory", uuid)
+  await redis.rpush("chatHistory", uuid)
+
+  await appendLog(`addChatHistory success with id: ${uuid}`)
 }
 
 export async function getChunkHistory({ uuid, lengthBefore = - 1, lengthAfter = 2 }: {uuid: string, lengthBefore: number, lengthAfter: number}) {
@@ -59,10 +72,12 @@ export async function getChunkHistory({ uuid, lengthBefore = - 1, lengthAfter = 
 }
 
 export async function addChatHistoryMbakAI(uuid: string) {
-  return await redis.rpush("chatHistoryMbakAI", uuid)
+  await redis.rpush("chatHistoryMbakAI", uuid)
+
+  await appendLog(`addChatHistoryMbakAI success with id: ${uuid}`)
 }
 
-interface MetadataMbakAI { 
+export interface MetadataMbakAI { 
   messages: Message[],
   name: string,
   systemPrompt: string,
@@ -74,7 +89,7 @@ interface MetadataMbakAI {
   userId: string,
 }
 
-export async function getRetrievalMbakAI(string: string, length: number = 5) {
+export async function getRetrievalMbakAI(string: string, length: number = 2) {
   const vector = await getEmbedding(string)
 
   const retrieval = await vectorMbakAI.query({
@@ -82,7 +97,11 @@ export async function getRetrievalMbakAI(string: string, length: number = 5) {
     topK: length,
   });
 
-  const result: MetadataMbakAI[] = await redis.mget(...retrieval.map((data) => `chat-${data.id}`))
+  const queryIds = retrieval.map((data) => `chat-${data.id}`)
+
+  const result: MetadataMbakAI[] = await redis.mget(...queryIds)
+
+  await appendLog(`getRetrievalMbakAI success with retrieval: [${queryIds.join(", ")}]`)
 
   return { result, vector }
 }
@@ -94,7 +113,7 @@ export async function addVectorDBEntryMbakAI({id, vector, metadata: { userId, me
     vector,
   });
 
-  await redis.set(`chat-${id}`, {
+  await redisMbakAI.set(`chat-${id}`, {
     id,
     username: name,
     userId: userId,
@@ -106,4 +125,14 @@ export async function addVectorDBEntryMbakAI({id, vector, metadata: { userId, me
     systemPrompt,
     messages,
   })
+
+  await appendLog(`addVectorDBEntryMbakAI success with insertion: chat-${id}`)
+}
+
+export async function getMemoryMbakAI(input: string) {
+  const keywords = await findInfluentialTokens(input);
+
+  const retrieval = await getRetrievalMbakAI(keywords.join(", "))
+
+  return { ...retrieval, keywords }
 }

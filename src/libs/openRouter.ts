@@ -1,6 +1,18 @@
 import { Message } from "ai"
+import { appendLog } from "./log"
+import { trimStringToMaxLength } from "./string"
 
-export async function openRouterChatCompletion(messages: Message[], model: string, stop: string[], temperature: number = 0.9, name: string = 'Random User', agent: string = 'Mbak AI', provider?: string) {
+interface OpenRouterChatCompletion { 
+  messages: Message[], 
+  model: string, 
+  stop?: string[], 
+  temperature?: number, 
+  name?: string, 
+  agent?: string,
+  provider?: string
+}
+
+export async function openRouterChatCompletion({ messages, model, stop, temperature = 0.9, name = 'Random User', agent = 'Mbak AI', provider }: OpenRouterChatCompletion) {
 	const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -22,7 +34,10 @@ export async function openRouterChatCompletion(messages: Message[], model: strin
     })
   });
 
-  const result = await response.json()
+  let result = await response.json()
+  result = result.choices[0]?.message?.content || "" as unknown as string
+  
+  await appendLog(`openRouterChatCompletion success with response: ${trimStringToMaxLength(result)}`)
 
-  return result.choices[0]?.message?.content || "" as unknown as string;
+  return result;
 }

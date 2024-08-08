@@ -1,4 +1,5 @@
 import { groq } from './groq';
+import { appendLog } from './log'
 
 // Function to find the most influential tokens for a sentence
 export async function findInfluentialTokens(sentence: string) {
@@ -13,7 +14,7 @@ export async function findInfluentialTokens(sentence: string) {
         "content": sentence
       }
     ],
-    "model": "llama3-70b-8192",
+    "model": "llama-3.1-70b-versatile",
     "temperature": 0.9,
     "top_p": 1,
     "stream": false,
@@ -25,7 +26,7 @@ export async function findInfluentialTokens(sentence: string) {
 
   const { influential_words } = JSON.parse(chatCompletion.choices[0].message.content);
 
-  console.log(influential_words)
+  await appendLog(`findInfluentialTokens success with tokens: [${influential_words.join(", ")}]`)
 
   return influential_words.length > 0 ? influential_words : sentence.split(" ").length < 4 ? sentence.split(" ") : [] ;
 }

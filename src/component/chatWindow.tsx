@@ -2,18 +2,24 @@
 
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
+import {RequestDetails} from 'deep-chat/dist/types/interceptors';
 
 import { Message, useChat } from "ai/react"
 import { useEffect, useRef, useState } from "react"
 import type { FormEvent } from "react"
 
 import { ChatMessageBubble } from "@/component/chatMessageBubble"
+import dynamic from "next/dynamic"
 
 const trimMessage = (message: Message[]) => {
 	return message.slice(-10, message.length)
 }
 
 export function ChatWindow(props: { endpoint: string; placeholder?: string; name: string; id: string }) {
+	const DeepChat = dynamic(() => import('deep-chat-react').then((mod) => mod.DeepChat), {
+    ssr: false,
+  });
+	
 	const messageContainerRef = useRef<HTMLDivElement | null>(null)
 
 	const { endpoint, placeholder } = props
@@ -95,6 +101,40 @@ export function ChatWindow(props: { endpoint: string; placeholder?: string; name
 
 	return (
 		<div className={`relative flex flex-col items-center p-4 rounded grow overflow-hidden h-full`}>
+			<DeepChat
+        style={{borderRadius: '10px'}}
+        introMessage={{text: 'Send a chat message to an example server.'}}
+        connect={{url: '/api/custom/chat'}}
+        requestBodyLimits={{maxMessages: -1}}
+        requestInterceptor={(details: RequestDetails) => {
+          console.log(details);
+          return details;
+        }}
+        responseInterceptor={(response: any) => {
+          console.log(response);
+          return response;
+        }}
+      />
+      <DeepChat
+        style={{borderRadius: '10px'}}
+        introMessage={{text: 'Send a streamed chat message to an example server.'}}
+        connect={{url: '/api/custom/chat-stream', stream: true}}
+      />
+      <DeepChat
+      	style={{borderRadius: '10px'}}
+            introMessage={{text: 'Send files to an example server.'}}
+            connect={{url: '/api/custom/files'}}
+            audio={true}
+            images={true}
+            gifs={true}
+            camera={true}
+            microphone={true}
+            mixedFiles={true}
+            textInput={{placeholder: {text: 'Send a file!'}}}
+            validateInput={(_?: string, files?: File[]) => {
+              return !!files && files.length > 0;
+            }}
+          />
 			<h2 className={`${messages.length > 0 ? "" : "hidden"} text-2xl text-[#1E1E1E] mt-4`}>👩 Mbak AI</h2>
 			{messages.length === 0 ? (
 				<div className="p-4 md:p-8 rounded text-[#FB7C33] overflow-hidden">
