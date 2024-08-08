@@ -1,6 +1,6 @@
 
-import errorHandler from "@/libs/error"
-import { speechToText } from "@/libs/speechtotext"
+import errorHandler from "@/utils/error"
+import { speechToText } from "@/utils/speechtotext"
 
 export const runtime = "edge";
 

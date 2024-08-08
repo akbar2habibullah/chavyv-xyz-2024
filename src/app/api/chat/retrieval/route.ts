@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Redis } from '@upstash/redis';
 import { Index } from "@upstash/vector";
-import { findInfluentialTokens } from "@/libs/attention";
-import { getEmbedding } from "@/libs/googleAI";
+import { findInfluentialTokens } from "@/utils/attention";
+import { getEmbedding } from "@/utils/googleAI";
 import { Message } from "ai"
 
 const redis1 = new Redis({
@@ -26,10 +26,10 @@ const index2 = new Index({
 });
 
 import ShortUniqueId from "short-unique-id";
-import { getUUID } from "@/libs/uuid"
-import { dateNow } from "@/libs/date"
-import { trimNewlines } from "@/libs/string"
-import errorHandler from "@/libs/error"
+import { getUUID } from "@/utils/uuid"
+import { dateNow } from "@/utils/date"
+import { trimNewlines } from "@/utils/string"
+import errorHandler from "@/utils/error"
 
 async function getChunkData(id: string, memory: number) {
     const history: string = memory === 1 ? await redis1.get("history") || "" : await redis2.get("history") || "";

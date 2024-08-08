@@ -1,5 +1,5 @@
 import HeroSection from "@/component/hero"
-import { getBlocks, getDatabase, getPage } from "@/libs/notion"
+import { getBlocks, getDatabase, getPage } from "@/utils/notion"
 import Link from "next/link"
 import { NotionBlock, Render } from "@9gustin/react-notion-render"
 

@@ -1,6 +1,6 @@
 import BlogCard from "@/component/blogCard"
 import HeroSection from "@/component/hero"
-import { getDatabase } from "@/libs/notion"
+import { getDatabase } from "@/utils/notion"
 
 interface BlogProps {
 	id: string

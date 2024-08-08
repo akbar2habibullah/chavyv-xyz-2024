@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { trimNewlines, wrapMemoryMbakAI, wrapSystemPromptMbakAI } from "@/libs/string";
-import { getUUID } from "@/libs/uuid"
-import { dateNow } from "@/libs/date"
-import { groqChatCompletion } from "@/libs/groq"
-import { addChatHistoryMbakAI, addVectorDBEntryMbakAI, getMemoryMbakAI } from "@/libs/upstash"
-import { queryWikipedia } from "@/libs/wikipedia"
-import errorHandler from "@/libs/error"
+import { trimNewlines, wrapMemoryMbakAI, wrapSystemPromptMbakAI } from "@/utils/string";
+import { getUUID } from "@/utils/uuid"
+import { dateNow } from "@/utils/date"
+import { groqChatCompletion } from "@/utils/groq"
+import { addChatHistoryMbakAI, addVectorDBEntryMbakAI, getMemoryMbakAI } from "@/utils/upstash"
+import { queryWikipedia } from "@/utils/wikipedia"
+import errorHandler from "@/utils/error"
 
 export const runtime = "edge";
 

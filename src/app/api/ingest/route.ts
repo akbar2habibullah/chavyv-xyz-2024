@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { Message } from "ai"
 
-import { getUUID } from "@/libs/uuid"
-import { getChatHistory } from "@/libs/upstash"
-import errorHandler from "@/libs/error"
+import { getUUID } from "@/utils/uuid"
+import { getChatHistory } from "@/utils/upstash"
+import errorHandler from "@/utils/error"
 
 export const runtime = "edge"
 
