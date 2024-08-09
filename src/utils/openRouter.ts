@@ -16,7 +16,7 @@ export async function openRouterChatCompletion({ messages, model, stop, temperat
 	const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
+        "Authorization": `Bearer ${process.env.OPENROUTER_KEY!}`,
         "Content-Type": "application/json"
     },
     body: JSON.stringify({

@@ -12,3 +12,8 @@ export async function getEmbedding(text: string): Promise<number[]> {
 
   return result.embedding.values;
 }
+
+
+const flashModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+export async function 

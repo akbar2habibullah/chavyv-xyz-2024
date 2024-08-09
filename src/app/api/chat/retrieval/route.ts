@@ -37,8 +37,8 @@ async function handler(req: NextRequest) {
     const response = await openRouterChatCompletion({
         model: "google/gemma-2-27b-it",
         messages:  [
-                { id: "0", role: "system", content: systemPrompt },
-                ...messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
+            { id: "0", role: "system", content: systemPrompt },
+            ...messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
         ],
         provider: "Together",
         stop: [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],

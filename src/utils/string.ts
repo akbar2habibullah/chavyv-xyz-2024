@@ -27,7 +27,7 @@ Me: ${memory[i]?.output}\n`
 }
 
 export function wrapSystemPrompt({ memories = "There's no memory yet", timestamp = dateNow(), name = "Anonymous User" }): string {
-  const systemPrompt = `${process.env.AGENT_EGO}
+  const systemPrompt = `${process.env.AGENT_EGO!}
   ${memories}
   Timestamp for now is ${timestamp}.
   And I'm currently in online conversation with ${name} via text chat interface.`;
@@ -49,7 +49,7 @@ export function wrapMemoryMbakAI(memory: MetadataMbakAI[]): string {
 }
 
 export function wrapSystemPromptMbakAI({ memories = "There's no memory yet", wiki = "", timestamp = dateNow(), name = "Anonymous User", userId = getUUID() }): string {
-  const systemPrompt = `${process.env.MBAK_AI_EGO_1}
+  const systemPrompt = `${process.env.MBAK_AI_EGO_1!}
 
 I have memory and I remember this interaction in the past with various people or source of information I interacted with:
 ${memories}
@@ -61,7 +61,7 @@ ${
 ${wiki}`
 		: ""
 }
-${process.env.MBAK_AI_EGO_2}
+${process.env.MBAK_AI_EGO_2!}
 Timestamp for now is ${timestamp}.
 And I'm currently in online conversation with ${name}#${userId} via text chat interface.`;
 

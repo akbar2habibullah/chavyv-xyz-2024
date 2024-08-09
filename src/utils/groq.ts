@@ -5,7 +5,7 @@ import { appendLog } from "./log"
 import { trimNewlines, trimStringToMaxLength } from "./string"
 
 export const groq = new Groq({
-	apiKey: process.env.GROQ_API_KEY,
+	apiKey: process.env.GROQ_API_KEY!,
 })
 
 interface GroqChatCompletion { 
