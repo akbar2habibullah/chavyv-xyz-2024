@@ -26,7 +26,7 @@ async function handler(req: NextRequest) {
 
     const wiki = await queryWikipedia(input)
 
-    const retrieval = await getMemoryMbakAI(currentMessageContent)
+    const retrieval = await getMemoryMbakAI(input)
 
     const prememories = wrapMemoryMbakAI(retrieval.result)
 
@@ -47,7 +47,7 @@ async function handler(req: NextRequest) {
             },
             ...messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : "Mbak AI" }))
         ],
-        model: "llama3-70b-8192",
+        model: "llama-3.1-8b-instant",
     });
 
     const reflection = await getMemoryMbakAI(preResponse)

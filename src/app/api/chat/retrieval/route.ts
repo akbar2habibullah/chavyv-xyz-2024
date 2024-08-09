@@ -5,7 +5,6 @@ import { dateNow } from "@/utils/date"
 import { wrapMemory, wrapSystemPrompt } from "@/utils/string"
 import errorHandler from "@/utils/error"
 import { addChatHistory, addVectorDBEntry, getMemory } from "@/utils/upstash"
-import { openRouterChatCompletion } from "@/utils/openRouter"
 import { Message } from "ai"
 import { getEmbedding } from '@/utils/googleAI'
 import { groqChatCompletion } from '@/utils/groq'
