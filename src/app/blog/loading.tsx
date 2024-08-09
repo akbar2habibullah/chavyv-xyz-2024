@@ -1,4 +1,4 @@
-import HeroSection from "@/component/hero"
+import HeroSection from "@/utils/component/hero"
 
 export default async function Slug() {
 	return (

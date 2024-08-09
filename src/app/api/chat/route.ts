@@ -7,6 +7,7 @@ import { addChatHistoryMbakAI, addVectorDBEntryMbakAI, getMemoryMbakAI } from "@
 import { queryWikipedia } from "@/utils/wikipedia"
 import errorHandler from "@/utils/error"
 import { Message } from "ai"
+import { getEmbedding } from '@/utils/googleAI'
 
 export const runtime = "edge";
 
@@ -25,12 +26,36 @@ async function handler(req: NextRequest) {
 
     const wiki = await queryWikipedia(currentMessageContent)
 
-    const { result, vector, keywords } = await getMemoryMbakAI(currentMessageContent)
+    const retrieval = await getMemoryMbakAI(currentMessageContent)
 
-    const memories = wrapMemoryMbakAI(result)
+    const prememories = wrapMemoryMbakAI(retrieval.result)
+
+    const preSystemPrompt = wrapSystemPromptMbakAI({
+        memories: prememories,
+        wiki,
+        name,
+        userId,
+        timestamp
+    })
+
+    const preResponse = await groqChatCompletion({
+        messages: [
+            {   
+                id: '0',
+                role: "system",
+                content: preSystemPrompt,
+            },
+            ...messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : "Mbak AI" }))
+        ],
+        model: "llama3-70b-8192",
+    });
+
+    const reflection = await getMemoryMbakAI(preResponse)
+
+    const memories = wrapMemoryMbakAI([...retrieval.result, ...reflection.result])
 
     const systemPrompt = wrapSystemPromptMbakAI({
-        memories,
+        memories: memories,
         wiki,
         name,
         userId,
@@ -48,6 +73,9 @@ async function handler(req: NextRequest) {
         ],
         model: "llama3-70b-8192",
     });
+
+    const keywords = [ ...retrieval.keywords, ...reflection.keywords ]
+    const vector = await getEmbedding(keywords.join(", "))
 
     await addVectorDBEntryMbakAI({
         id: msgId,

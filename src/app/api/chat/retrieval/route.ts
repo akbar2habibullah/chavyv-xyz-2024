@@ -7,13 +7,15 @@ import errorHandler from "@/utils/error"
 import { addChatHistory, addVectorDBEntry, getMemory } from "@/utils/upstash"
 import { openRouterChatCompletion } from "@/utils/openRouter"
 import { Message } from "ai"
+import { getEmbedding } from '@/utils/googleAI'
+import { groqChatCompletion } from '@/utils/groq'
 
 export const runtime = "edge";
 
 async function handler(req: NextRequest) {
 
     const body = await req.json();
-    const messages: Message[] = body.messages?.slice(-25) ?? [];
+    const messages: Message[] = body.messages?.slice(-50) ?? [];
     const name: string = body.user ?? "Anonymous User";
     const userId: string = body.user_id ?? getUUID();
     const msgId = getUUID();
@@ -28,21 +30,40 @@ async function handler(req: NextRequest) {
 
     const timestamp = dateNow()
 
-    const { result, vector, keywords } = await getMemory(input)
+    const retrieval = await getMemory(input)
 
-    const memories = wrapMemory(result, name)
+    const preMemories = wrapMemory(retrieval.result, name)
+
+    const preSystemPrompt = wrapSystemPrompt({ memories: preMemories, timestamp, name})
+
+    const trimmedMessages = messages.slice(-10)
+
+    const preResponse = await groqChatCompletion({
+        model: "gemma2-9b-it",
+        messages:  [
+                { id: "0", role: "system", content: preSystemPrompt },
+                ...trimmedMessages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
+        ],
+        stop: [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],
+    });
+
+    const reflection = await getMemory(preResponse)
+
+    const memories = wrapMemory([...retrieval.result, ...reflection.result], name)
 
     const systemPrompt = wrapSystemPrompt({ memories, timestamp, name})
 
-    const response = await openRouterChatCompletion({
-        model: "google/gemma-2-27b-it",
+    const response = await groqChatCompletion({
+        model: "llama-3.1-70b-versatile",
         messages:  [
-                { id: "0", role: "system", content: systemPrompt },
+                { id: "0", role: "system", content: preSystemPrompt },
                 ...messages.map((data: any) => ({ id: data.id, role: data.role, content: data.content, name: data.role === 'user' ? name : process.env.AGENT }))
         ],
-        provider: "Together",
         stop: [`${name}:`, `\n\n\n`, `\n\n\n\n`, `\n\n\n\n\n`],
     });
+
+    const keywords = [ ...retrieval.keywords, ...reflection.keywords ]
+    const vector = await getEmbedding(keywords.join(", "))
 
     await addVectorDBEntry({
         id: msgId,
