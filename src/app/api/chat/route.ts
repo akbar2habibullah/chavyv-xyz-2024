@@ -20,11 +20,11 @@ async function handler(req: NextRequest) {
 
     messages[messages.length - 1].id = msgId
 
-    const currentMessageContent = messages[messages.length - 1].content;
+    const input = messages[messages.length - 1].content;
 
     const timestamp = dateNow()
 
-    const wiki = await queryWikipedia(currentMessageContent)
+    const wiki = await queryWikipedia(input)
 
     const retrieval = await getMemoryMbakAI(currentMessageContent)
 
@@ -62,7 +62,7 @@ async function handler(req: NextRequest) {
         timestamp
     })
 
-    const response = await groqChatCompletion({
+    const output = await groqChatCompletion({
         messages: [
             {   
                 id: '0',
@@ -83,10 +83,10 @@ async function handler(req: NextRequest) {
         metadata: {
             name,
             userId,
-            wikipedia: wiki,
+            wiki,
             keywords,
-            input: currentMessageContent,
-            output: response,
+            input,
+            output,
             timestamp,
             systemPrompt,
             messages,
@@ -95,7 +95,7 @@ async function handler(req: NextRequest) {
 
     await addChatHistoryMbakAI(msgId)
 
-    return NextResponse.json({ text: response }, { status: 200 })
+    return NextResponse.json({ text: output }, { status: 200 })
 }
 
 export const POST = errorHandler(handler);

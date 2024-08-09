@@ -154,7 +154,7 @@ export interface MetadataMbakAI {
   input: string,
   output: string,
   keywords: string[],
-  wikipedia: string,
+  wiki: string,
   userId: string,
 }
 
@@ -175,7 +175,7 @@ export async function getRetrievalMbakAI(string: string, length: number = 2) {
   return { result, vector }
 }
 
-export async function addVectorDBEntryMbakAI({id, vector, metadata: { userId, messages, name, systemPrompt, timestamp, input, output, keywords, wikipedia }}: { id: string, vector: number[], metadata: MetadataMbakAI}) {
+export async function addVectorDBEntryMbakAI({id, vector, metadata: { userId, messages, name, systemPrompt, timestamp, input, output, keywords, wiki }}: { id: string, vector: number[], metadata: MetadataMbakAI}) {
 
   await vectorMbakAI.upsert({
     id,
@@ -186,7 +186,7 @@ export async function addVectorDBEntryMbakAI({id, vector, metadata: { userId, me
     id,
     username: name,
     userId: userId,
-    wikipedia,
+    wiki,
     keywords,
     input,
     output,
